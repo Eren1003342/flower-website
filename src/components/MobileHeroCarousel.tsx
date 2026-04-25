@@ -14,7 +14,7 @@ type MobileHeroItem = {
 
 export default function MobileHeroCarousel({ items }: { items: MobileHeroItem[] }) {
   const DISPLAY_MS = 3000;
-  const TRANSITION_MS = 700;
+  const TRANSITION_MS = 480;
   const validItems = useMemo(() => items.filter((item) => item.slug && item.image), [items]);
   const [activeIndex, setActiveIndex] = useState(() =>
     validItems.length > 0 ? Math.floor(Math.random() * validItems.length) : 0,
@@ -113,7 +113,7 @@ export default function MobileHeroCarousel({ items }: { items: MobileHeroItem[] 
         className={className}
         style={{
           transitionDuration: `${TRANSITION_MS}ms`,
-          transitionTimingFunction: "cubic-bezier(0.16, 1, 0.3, 1)",
+          transitionTimingFunction: "cubic-bezier(0.22, 1, 0.36, 1)",
         }}
       >
         <Image src={item.image} alt={item.name} fill sizes="100vw" className="object-cover" />
@@ -155,15 +155,15 @@ export default function MobileHeroCarousel({ items }: { items: MobileHeroItem[] 
       <div className="relative h-56">
         {renderSlide(
           activeItem,
-          `absolute inset-0 transition-[opacity,transform] ${
-            isTransitioning ? "opacity-0 translate-x-[-4%] scale-[1.01]" : "opacity-100 translate-x-0 scale-100"
+          `absolute inset-0 transition-opacity ${
+            isTransitioning ? "opacity-0" : "opacity-100"
           }`,
         )}
         {incomingItem
           ? renderSlide(
               incomingItem,
-              `absolute inset-0 transition-[opacity,transform] ${
-                isTransitioning ? "opacity-100 translate-x-0 scale-100" : "opacity-0 translate-x-[4%] scale-[1.01]"
+              `absolute inset-0 transition-opacity ${
+                isTransitioning ? "opacity-100" : "opacity-0"
               }`,
             )
           : null}
