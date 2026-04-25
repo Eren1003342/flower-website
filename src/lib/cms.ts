@@ -1,6 +1,7 @@
 import { promises as fs } from "fs";
 import path from "path";
 import { getSupabaseAdminClient, isSupabaseConfigured } from "@/lib/supabase-admin";
+import { validateSiteContentInput } from "@/lib/validation";
 
 export type Category = string;
 export interface CategoryDisplayOption {
@@ -290,7 +291,24 @@ export async function getSiteContent(): Promise<SiteContent> {
       return DEFAULT_SITE_CONTENT;
     }
 
-    return data.content as SiteContent;
+    const validated = validateSiteContentInput(data.content);
+    if (!validated.ok) {
+      const { error: repairError } = await client.from("site_content").upsert(
+        {
+          id: "default",
+          content: DEFAULT_SITE_CONTENT,
+        } as SiteContentRow,
+        { onConflict: "id" },
+      );
+
+      if (repairError) {
+        throw new Error(`Geçersiz site içeriği düzeltilemedi: ${repairError.message}`);
+      }
+
+      return DEFAULT_SITE_CONTENT;
+    }
+
+    return validated.content;
   }
 
   return readJson<SiteContent>(contentFile, DEFAULT_SITE_CONTENT);
