@@ -39,7 +39,7 @@ export default async function AboutPage() {
           </div>
         </div>
 
-        <div className="bg-white/85 dark:bg-slate-900/85 rounded-3xl p-7 md:p-10 shadow-lg border border-sage-100 dark:border-slate-800">
+        <div className="bg-gradient-to-br from-cream-50 to-sage-50/80 dark:from-slate-900/85 dark:to-slate-900/85 rounded-3xl p-7 md:p-10 shadow-lg border border-sage-200/80 dark:border-slate-800">
           <h2 className="text-3xl md:text-4xl font-semibold text-sage-900 dark:text-cream-50 mb-5" style={{ fontFamily: "var(--font-brand)" }}>
             {content.about.intro}
           </h2>
