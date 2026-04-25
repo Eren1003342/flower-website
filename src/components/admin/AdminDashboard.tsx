@@ -12,7 +12,7 @@ function normalizeCategoryId(value: string) {
     .toLocaleLowerCase("tr-TR")
     .replace(/[^a-z0-9çğıöşü-]/g, "")
     .replace(/-+/g, "-")
-    .replace(/^-|-$/g, "");
+    .replace(/^-+/g, "");
 }
 
 function blankProduct(): Product {

@@ -2,6 +2,8 @@ import { promises as fs } from "fs";
 import path from "path";
 import { getSupabaseAdminClient, isSupabaseConfigured } from "@/lib/supabase-admin";
 import { validateSiteContentInput } from "@/lib/validation";
+import productsSeedData from "../../data/products.json";
+import siteContentSeedData from "../../data/site-content.json";
 
 export type Category = string;
 export interface CategoryDisplayOption {
@@ -161,6 +163,24 @@ async function writeJson(filePath: string, value: unknown) {
   await fs.writeFile(filePath, JSON.stringify(value, null, 2), "utf8");
 }
 
+async function getLocalProductsSeed() {
+  const importedSeed = Array.isArray(productsSeedData) ? (productsSeedData as Product[]) : [];
+  if (importedSeed.length > 0) {
+    return importedSeed;
+  }
+  return readJson<Product[]>(productsFile, []);
+}
+
+async function getLocalSiteContentSeed() {
+  if (siteContentSeedData && typeof siteContentSeedData === "object") {
+    const validated = validateSiteContentInput(siteContentSeedData);
+    if (validated.ok) {
+      return validated.content;
+    }
+  }
+  return readJson<SiteContent>(contentFile, DEFAULT_SITE_CONTENT);
+}
+
 function mapRowToProduct(row: ProductRow): Product {
   const images = Array.isArray(row.images) ? row.images.filter((item): item is string => typeof item === "string") : [];
   return {
@@ -201,7 +221,21 @@ export async function getProducts(): Promise<Product[]> {
       throw new Error(`Ürünler Supabase'den okunamadı: ${error.message}`);
     }
 
-    return (data as ProductRow[]).map(mapRowToProduct);
+    const rows = (data as ProductRow[]) ?? [];
+    if (rows.length === 0) {
+      const localSeed = await getLocalProductsSeed();
+      if (localSeed.length > 0) {
+        const { error: seedError } = await client
+          .from("products")
+          .upsert(localSeed.map(mapProductToRow), { onConflict: "id" });
+        if (seedError) {
+          throw new Error(`Ürün seed verisi Supabase'e yazılamadı: ${seedError.message}`);
+        }
+        return localSeed;
+      }
+    }
+
+    return rows.map(mapRowToProduct);
   }
 
   return readJson<Product[]>(productsFile, []);
@@ -276,10 +310,11 @@ export async function getSiteContent(): Promise<SiteContent> {
     }
 
     if (!data?.content || typeof data.content !== "object") {
+      const localSeed = await getLocalSiteContentSeed();
       const { error: insertError } = await client.from("site_content").upsert(
         {
           id: "default",
-          content: DEFAULT_SITE_CONTENT,
+          content: localSeed,
         } as SiteContentRow,
         { onConflict: "id" },
       );
@@ -288,15 +323,16 @@ export async function getSiteContent(): Promise<SiteContent> {
         throw new Error(`Varsayılan içerik Supabase'e yazılamadı: ${insertError.message}`);
       }
 
-      return DEFAULT_SITE_CONTENT;
+      return localSeed;
     }
 
     const validated = validateSiteContentInput(data.content);
     if (!validated.ok) {
+      const localSeed = await getLocalSiteContentSeed();
       const { error: repairError } = await client.from("site_content").upsert(
         {
           id: "default",
-          content: DEFAULT_SITE_CONTENT,
+          content: localSeed,
         } as SiteContentRow,
         { onConflict: "id" },
       );
@@ -305,7 +341,7 @@ export async function getSiteContent(): Promise<SiteContent> {
         throw new Error(`Geçersiz site içeriği düzeltilemedi: ${repairError.message}`);
       }
 
-      return DEFAULT_SITE_CONTENT;
+      return localSeed;
     }
 
     return validated.content;
