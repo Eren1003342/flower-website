@@ -14,7 +14,7 @@ type MobileHeroItem = {
 
 export default function MobileHeroCarousel({ items }: { items: MobileHeroItem[] }) {
   const DISPLAY_MS = 3000;
-  const TRANSITION_MS = 850;
+  const TRANSITION_MS = 900;
   const validItems = useMemo(() => items.filter((item) => item.slug && item.image), [items]);
   const [activeIndex, setActiveIndex] = useState(() =>
     validItems.length > 0 ? Math.floor(Math.random() * validItems.length) : 0,
@@ -24,6 +24,7 @@ export default function MobileHeroCarousel({ items }: { items: MobileHeroItem[] 
   const activeIndexRef = useRef(activeIndex);
   const transitioningRef = useRef(false);
   const switchTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const preloadRequestRef = useRef(0);
 
   useEffect(() => {
     activeIndexRef.current = activeIndex;
@@ -47,18 +48,54 @@ export default function MobileHeroCarousel({ items }: { items: MobileHeroItem[] 
         next = Math.floor(Math.random() * validItems.length);
       }
 
-      setIncomingIndex(next);
-      setIsTransitioning(true);
+      const nextItem = validItems[next];
+      if (!nextItem) {
+        return;
+      }
 
-      switchTimeoutRef.current = setTimeout(() => {
-        setActiveIndex(next);
-        setIncomingIndex(null);
-        setIsTransitioning(false);
-      }, TRANSITION_MS);
+      const startTransition = () => {
+        if (transitioningRef.current) {
+          return;
+        }
+        setIncomingIndex(next);
+        setIsTransitioning(true);
+
+        switchTimeoutRef.current = setTimeout(() => {
+          setActiveIndex(next);
+          setIncomingIndex(null);
+          setIsTransitioning(false);
+        }, TRANSITION_MS);
+      };
+
+      const requestId = ++preloadRequestRef.current;
+      const preloader = new window.Image();
+      preloader.decoding = "async";
+      preloader.src = nextItem.image;
+
+      if (preloader.complete) {
+        if (requestId === preloadRequestRef.current) {
+          startTransition();
+        }
+        return;
+      }
+
+      preloader.onload = () => {
+        if (requestId !== preloadRequestRef.current) {
+          return;
+        }
+        startTransition();
+      };
+      preloader.onerror = () => {
+        if (requestId !== preloadRequestRef.current) {
+          return;
+        }
+        startTransition();
+      };
     }, DISPLAY_MS);
 
     return () => {
       clearInterval(interval);
+      preloadRequestRef.current += 1;
       if (switchTimeoutRef.current) {
         clearTimeout(switchTimeoutRef.current);
       }
@@ -68,6 +105,7 @@ export default function MobileHeroCarousel({ items }: { items: MobileHeroItem[] 
   const activeItem = validItems[activeIndex];
   const incomingItem =
     incomingIndex !== null && incomingIndex >= 0 ? validItems[incomingIndex] : null;
+  const clickableItem = isTransitioning && incomingItem ? incomingItem : activeItem;
 
   function renderSlide(item: MobileHeroItem, className: string) {
     return (
@@ -111,21 +149,21 @@ export default function MobileHeroCarousel({ items }: { items: MobileHeroItem[] 
 
   return (
     <Link
-      href={`/urun/${activeItem.slug}`}
+      href={`/urun/${clickableItem.slug}`}
       className="group lg:hidden mb-4 block rounded-2xl overflow-hidden border border-white/20 bg-black/25"
     >
       <div className="relative h-56">
         {renderSlide(
           activeItem,
-          `absolute inset-0 transition-[opacity,transform] ${
-            isTransitioning ? "opacity-0 scale-[1.02]" : "opacity-100 scale-100"
+          `absolute inset-0 transition-[opacity,transform,filter] ${
+            isTransitioning ? "opacity-35 scale-[1.01] blur-[2px]" : "opacity-100 scale-100 blur-0"
           }`,
         )}
         {incomingItem
           ? renderSlide(
               incomingItem,
-              `absolute inset-0 transition-[opacity,transform] ${
-                isTransitioning ? "opacity-100 scale-100" : "opacity-0 scale-[0.985]"
+              `absolute inset-0 transition-[opacity,transform,filter] ${
+                isTransitioning ? "opacity-100 scale-100 blur-0" : "opacity-0 scale-[0.985] blur-[2px]"
               }`,
             )
           : null}
