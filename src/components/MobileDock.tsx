@@ -15,7 +15,7 @@ export default function MobileDock() {
 
   return (
     <>
-      <div className="md:hidden fixed bottom-3 inset-x-0 z-50 px-3 pointer-events-none">
+      <div className="md:hidden fixed bottom-0 inset-x-0 z-50 px-3 pointer-events-none">
         <div className="pointer-events-auto mx-auto max-w-md rounded-2xl border border-sage-200/90 dark:border-slate-700/90 bg-cream-50/92 dark:bg-slate-900/92 shadow-xl backdrop-blur-md pb-safe">
           <div className="grid grid-cols-4 px-2 py-2">
             <Link href="/" className={itemClass(pathname === "/")}>

@@ -53,7 +53,7 @@ export default async function RootLayout({
       <body className="theme-smooth min-h-full flex flex-col text-slate-800 bg-cream-50 dark:bg-slate-950 dark:text-slate-100 transition-colors duration-300">
         <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
           <Navbar brandName={content.brand.name} />
-          <main className="flex-1 flex flex-col pb-28 md:pb-0">{children}</main>
+          <main className="flex-1 flex flex-col pb-28 md:pb-0 bg-cream-50 dark:bg-slate-950 transition-colors duration-300">{children}</main>
           <Footer content={content} />
           <MobileDock />
         </ThemeProvider>
