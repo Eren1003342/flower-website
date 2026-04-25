@@ -9,7 +9,11 @@ export async function GET() {
     return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
   }
 
-  return NextResponse.json({ products: await getProducts() });
+  try {
+    return NextResponse.json({ products: await getProducts() });
+  } catch (error) {
+    return NextResponse.json({ message: error instanceof Error ? error.message : "Ürünler alınamadı." }, { status: 500 });
+  }
 }
 
 export async function POST(request: Request) {
@@ -17,33 +21,37 @@ export async function POST(request: Request) {
     return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
   }
 
-  const body = await request.json();
+  try {
+    const body = await request.json();
 
-  if (body.action === "save") {
-    const validated = validateProductInput(body.product);
-    if (!validated.ok) {
-      return NextResponse.json({ message: validated.message }, { status: 400 });
+    if (body.action === "save") {
+      const validated = validateProductInput(body.product);
+      if (!validated.ok) {
+        return NextResponse.json({ message: validated.message }, { status: 400 });
+      }
+
+      const products = await upsertProduct(validated.product);
+      revalidatePath("/");
+      revalidatePath("/katalog");
+      revalidatePath("/urun/[slug]", "page");
+      return NextResponse.json({ products });
     }
 
-    const products = await upsertProduct(validated.product);
-    revalidatePath("/");
-    revalidatePath("/katalog");
-    revalidatePath("/urun/[slug]", "page");
-    return NextResponse.json({ products });
-  }
+    if (body.action === "delete") {
+      const productId = validateProductId(body.productId);
+      if (!productId) {
+        return NextResponse.json({ message: "Geçersiz ürün kimliği." }, { status: 400 });
+      }
 
-  if (body.action === "delete") {
-    const productId = validateProductId(body.productId);
-    if (!productId) {
-      return NextResponse.json({ message: "Geçersiz ürün kimliği." }, { status: 400 });
+      const products = await deleteProduct(productId);
+      revalidatePath("/");
+      revalidatePath("/katalog");
+      revalidatePath("/urun/[slug]", "page");
+      return NextResponse.json({ products });
     }
 
-    const products = await deleteProduct(productId);
-    revalidatePath("/");
-    revalidatePath("/katalog");
-    revalidatePath("/urun/[slug]", "page");
-    return NextResponse.json({ products });
+    return NextResponse.json({ message: "Geçersiz işlem" }, { status: 400 });
+  } catch (error) {
+    return NextResponse.json({ message: error instanceof Error ? error.message : "Ürün işlemi başarısız oldu." }, { status: 500 });
   }
-
-  return NextResponse.json({ message: "Geçersiz işlem" }, { status: 400 });
 }

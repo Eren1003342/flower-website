@@ -3,6 +3,7 @@ import { isAdminAuthenticated } from "@/lib/admin-auth";
 import { promises as fs } from "fs";
 import path from "path";
 import { randomUUID } from "crypto";
+import { getSupabaseAdminClient, isSupabaseConfigured, SUPABASE_STORAGE_BUCKET } from "@/lib/supabase-admin";
 
 export const runtime = "nodejs";
 
@@ -84,13 +85,42 @@ export async function POST(request: Request) {
     return NextResponse.json({ message: "Dosya içeriği doğrulanamadı." }, { status: 400 });
   }
 
-  const uploadDir = path.join(process.cwd(), "public", "uploads");
-  await fs.mkdir(uploadDir, { recursive: true });
-
   const extension = ALLOWED_MIME_TO_EXT[detectedMime];
   const safeName = `${Date.now()}-${randomUUID()}.${extension}`;
+
+  if (isSupabaseConfigured()) {
+    try {
+      const client = getSupabaseAdminClient();
+      const objectPath = `products/${safeName}`;
+      const { error: uploadError } = await client.storage.from(SUPABASE_STORAGE_BUCKET).upload(objectPath, buffer, {
+        contentType: detectedMime,
+        upsert: false,
+      });
+
+      if (uploadError) {
+        return NextResponse.json({ message: `Görsel depoya yüklenemedi: ${uploadError.message}` }, { status: 500 });
+      }
+
+      const { data } = client.storage.from(SUPABASE_STORAGE_BUCKET).getPublicUrl(objectPath);
+      return NextResponse.json({ url: data.publicUrl });
+    } catch {
+      return NextResponse.json({ message: "Supabase yapılandırması eksik veya hatalı." }, { status: 500 });
+    }
+  }
+
+  if (process.env.NODE_ENV === "production") {
+    return NextResponse.json(
+      {
+        message:
+          "Kalıcı görsel depolama yapılandırılmadı. SUPABASE değişkenlerini ekleyip storage bucket kurmalısınız.",
+      },
+      { status: 500 },
+    );
+  }
+
+  const uploadDir = path.join(process.cwd(), "public", "uploads");
+  await fs.mkdir(uploadDir, { recursive: true });
   const filePath = path.join(uploadDir, safeName);
   await fs.writeFile(filePath, buffer);
-
   return NextResponse.json({ url: `/uploads/${safeName}` });
 }

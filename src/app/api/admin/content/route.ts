@@ -9,7 +9,11 @@ export async function GET() {
     return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
   }
 
-  return NextResponse.json({ content: await getSiteContent() });
+  try {
+    return NextResponse.json({ content: await getSiteContent() });
+  } catch (error) {
+    return NextResponse.json({ message: error instanceof Error ? error.message : "İçerik okunamadı." }, { status: 500 });
+  }
 }
 
 export async function POST(request: Request) {
@@ -17,53 +21,57 @@ export async function POST(request: Request) {
     return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
   }
 
-  const body = (await request.json()) as {
-    action?: string;
-    content?: unknown;
-    catalogFilters?: unknown;
-    showcaseCategories?: unknown;
-  };
+  try {
+    const body = (await request.json()) as {
+      action?: string;
+      content?: unknown;
+      catalogFilters?: unknown;
+      showcaseCategories?: unknown;
+    };
 
-  if (body.action === "save-categories") {
-    const catalogValidation = validateCategoryOptionsInput(body.catalogFilters, "Katalog filtreleri", 100);
-    if (!catalogValidation.ok) {
-      return NextResponse.json({ message: catalogValidation.message }, { status: 400 });
+    if (body.action === "save-categories") {
+      const catalogValidation = validateCategoryOptionsInput(body.catalogFilters, "Katalog filtreleri", 100);
+      if (!catalogValidation.ok) {
+        return NextResponse.json({ message: catalogValidation.message }, { status: 400 });
+      }
+
+      const showcaseValidation = validateCategoryOptionsInput(body.showcaseCategories, "Vitrin kategorileri", 100);
+      if (!showcaseValidation.ok) {
+        return NextResponse.json({ message: showcaseValidation.message }, { status: 400 });
+      }
+
+      const current = await getSiteContent();
+      const nextContent = await saveSiteContent({
+        ...current,
+        home: {
+          ...current.home,
+          catalogFilters: catalogValidation.options,
+          showcaseCategories: showcaseValidation.options,
+        },
+      });
+
+      revalidatePath("/");
+      revalidatePath("/katalog");
+
+      return NextResponse.json({ content: nextContent });
     }
 
-    const showcaseValidation = validateCategoryOptionsInput(body.showcaseCategories, "Vitrin kategorileri", 100);
-    if (!showcaseValidation.ok) {
-      return NextResponse.json({ message: showcaseValidation.message }, { status: 400 });
+    if (!body.content) {
+      return NextResponse.json({ message: "Kaydedilecek içerik bulunamadı." }, { status: 400 });
     }
 
-    const current = await getSiteContent();
-    const nextContent = await saveSiteContent({
-      ...current,
-      home: {
-        ...current.home,
-        catalogFilters: catalogValidation.options,
-        showcaseCategories: showcaseValidation.options,
-      },
-    });
+    const validated = validateSiteContentInput(body.content);
+    if (!validated.ok) {
+      return NextResponse.json({ message: validated.message }, { status: 400 });
+    }
 
+    const nextContent = await saveSiteContent(validated.content);
     revalidatePath("/");
-    revalidatePath("/katalog");
+    revalidatePath("/hakkimizda");
+    revalidatePath("/iletisim");
 
     return NextResponse.json({ content: nextContent });
+  } catch (error) {
+    return NextResponse.json({ message: error instanceof Error ? error.message : "İçerik kaydedilemedi." }, { status: 500 });
   }
-
-  if (!body.content) {
-    return NextResponse.json({ message: "Kaydedilecek içerik bulunamadı." }, { status: 400 });
-  }
-
-  const validated = validateSiteContentInput(body.content);
-  if (!validated.ok) {
-    return NextResponse.json({ message: validated.message }, { status: 400 });
-  }
-
-  const nextContent = await saveSiteContent(validated.content);
-  revalidatePath("/");
-  revalidatePath("/hakkimizda");
-  revalidatePath("/iletisim");
-
-  return NextResponse.json({ content: nextContent });
 }
