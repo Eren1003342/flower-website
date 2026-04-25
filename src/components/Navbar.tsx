@@ -19,7 +19,7 @@ export default function Navbar({ brandName = "Eleanor Çiçek" }: { brandName?: 
           <span className="inline-flex items-center justify-center w-7 h-7 sm:w-9 sm:h-9 rounded-full bg-gradient-to-br from-rose-100 to-rose-200 border border-rose-300/80 shadow-sm">
             <Flower className="w-4.5 h-4.5 sm:w-5 sm:h-5 text-rose-600" />
           </span>
-          <span className="truncate leading-[1.15] sm:leading-[1.08] pb-[1px]">{brandName}</span>
+          <span className="whitespace-nowrap leading-[1.2] sm:leading-[1.08] pb-[1px]">{brandName}</span>
         </Link>
         <div className="hidden lg:flex gap-8 text-sage-800/80 dark:text-cream-50/80 font-medium tracking-wide absolute left-1/2 -translate-x-1/2 w-max">
           <Link href="/" className="hover:text-rose-500 transition-colors">Ana Sayfa</Link>
