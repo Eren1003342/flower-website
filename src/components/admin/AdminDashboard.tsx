@@ -37,6 +37,23 @@ export default function AdminDashboard({
   const [pendingFile, setPendingFile] = useState<File | null>(null);
   const [pendingPreviewUrl, setPendingPreviewUrl] = useState<string | null>(null);
 
+  async function fetchJsonWithTimeout<T>(input: RequestInfo | URL, init?: RequestInit, timeoutMs = 15000): Promise<{ response: Response; data: T | null }> {
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), timeoutMs);
+    try {
+      const response = await fetch(input, { ...init, signal: controller.signal });
+      let data: T | null = null;
+      try {
+        data = (await response.json()) as T;
+      } catch {
+        data = null;
+      }
+      return { response, data };
+    } finally {
+      clearTimeout(timeout);
+    }
+  }
+
   function selectProduct(nextId: string, list = products) {
     setSelectedId(nextId);
     if (nextId === "new") {
@@ -60,23 +77,29 @@ export default function AdminDashboard({
   async function saveProduct() {
     setSaving(true);
     setStatus("Ürün kaydediliyor...");
+    try {
+      const { response, data } = await fetchJsonWithTimeout<{ message?: string; products?: Product[] }>("/api/admin/products", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action: "save", product: draft }),
+      });
 
-    const response = await fetch("/api/admin/products", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ action: "save", product: draft }),
-    });
+      if (!response.ok) {
+        setStatus(data?.message ?? "Ürün kaydedilemedi.");
+        return;
+      }
 
-    const data = await response.json();
-    setSaving(false);
-
-    if (!response.ok) {
-      setStatus(data.message ?? "Ürün kaydedilemedi.");
-      return;
+      syncAfterListChange((data?.products ?? []) as Product[], draft.id);
+      setStatus("Ürün kaydedildi.");
+    } catch (error) {
+      if (error instanceof DOMException && error.name === "AbortError") {
+        setStatus("Kaydetme isteği zaman aşımına uğradı. Lütfen tekrar deneyin.");
+        return;
+      }
+      setStatus("Bağlantı hatası nedeniyle ürün kaydedilemedi.");
+    } finally {
+      setSaving(false);
     }
-
-    syncAfterListChange(data.products as Product[], draft.id);
-    setStatus("Ürün kaydedildi.");
   }
 
   async function deleteCurrentProduct() {
@@ -86,43 +109,65 @@ export default function AdminDashboard({
 
     setSaving(true);
     setStatus("Ürün siliniyor...");
+    try {
+      const { response, data } = await fetchJsonWithTimeout<{ message?: string; products?: Product[] }>("/api/admin/products", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action: "delete", productId: selectedProduct.id }),
+      });
 
-    const response = await fetch("/api/admin/products", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ action: "delete", productId: selectedProduct.id }),
-    });
+      if (!response.ok) {
+        setStatus(data?.message ?? "Ürün silinemedi.");
+        return;
+      }
 
-    const data = await response.json();
-    setSaving(false);
-
-    if (!response.ok) {
-      setStatus(data.message ?? "Ürün silinemedi.");
-      return;
+      const nextProducts = data?.products ?? [];
+      syncAfterListChange(nextProducts, nextProducts[0]?.id ?? "new");
+      setStatus("Ürün silindi.");
+    } catch (error) {
+      if (error instanceof DOMException && error.name === "AbortError") {
+        setStatus("Silme isteği zaman aşımına uğradı. Lütfen tekrar deneyin.");
+        return;
+      }
+      setStatus("Bağlantı hatası nedeniyle ürün silinemedi.");
+    } finally {
+      setSaving(false);
     }
-
-    syncAfterListChange(data.products as Product[], data.products[0]?.id ?? "new");
-    setStatus("Ürün silindi.");
   }
 
   async function uploadImage(file: File) {
     const formData = new FormData();
     formData.append("file", file);
 
-    const response = await fetch("/api/admin/upload", {
-      method: "POST",
-      body: formData,
-    });
+    try {
+      const { response, data } = await fetchJsonWithTimeout<{ message?: string; url?: string }>(
+        "/api/admin/upload",
+        {
+          method: "POST",
+          body: formData,
+        },
+        20000,
+      );
 
-    const data = await response.json();
+      if (!response.ok) {
+        setStatus(data?.message ?? "Görsel yüklenemedi.");
+        return;
+      }
 
-    if (!response.ok) {
-      setStatus(data.message ?? "Görsel yüklenemedi.");
-      return;
+      if (!data?.url) {
+        setStatus("Görsel yanıtı alınamadı.");
+        return;
+      }
+
+      setDraft((current) => ({ ...current, images: [...current.images, data.url as string] }));
+      setStatus("Görsel eklendi.");
+    } catch (error) {
+      if (error instanceof DOMException && error.name === "AbortError") {
+        setStatus("Görsel yükleme zaman aşımına uğradı. Lütfen tekrar deneyin.");
+        return;
+      }
+      setStatus("Bağlantı hatası nedeniyle görsel yüklenemedi.");
     }
-
-    setDraft((current) => ({ ...current, images: [...current.images, data.url] }));
-    setStatus("Görsel eklendi.");
   }
 
   function selectPendingFile(file: File | null) {
@@ -149,63 +194,82 @@ export default function AdminDashboard({
   async function saveContent() {
     setSaving(true);
     setStatus("İçerik kaydediliyor...");
+    try {
+      const { response, data } = await fetchJsonWithTimeout<{ message?: string; content?: SiteContent }>("/api/admin/content", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ content: contentDraft }),
+      });
 
-    const response = await fetch("/api/admin/content", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ content: contentDraft }),
-    });
+      if (!response.ok) {
+        setStatus(data?.message ?? "İçerik kaydedilemedi.");
+        return;
+      }
 
-    const data = await response.json();
-    setSaving(false);
-
-    if (!response.ok) {
-      setStatus(data.message ?? "İçerik kaydedilemedi.");
-      return;
+      if (data?.content) {
+        setContentDraft(data.content);
+      }
+      setStatus("İçerik kaydedildi.");
+    } catch (error) {
+      if (error instanceof DOMException && error.name === "AbortError") {
+        setStatus("Kaydetme isteği zaman aşımına uğradı. Lütfen tekrar deneyin.");
+        return;
+      }
+      setStatus("Bağlantı hatası nedeniyle içerik kaydedilemedi.");
+    } finally {
+      setSaving(false);
     }
-
-    setContentDraft(data.content);
-    setStatus("İçerik kaydedildi.");
   }
 
   async function saveCategoriesOnly() {
     setSavingCategories(true);
     setStatus("Kategoriler kaydediliyor...");
+    try {
+      const { response: currentResponse, data: currentData } = await fetchJsonWithTimeout<{ message?: string; content?: SiteContent }>(
+        "/api/admin/content",
+      );
 
-    const currentResponse = await fetch("/api/admin/content");
-    const currentData = await currentResponse.json();
+      if (!currentResponse.ok || !currentData?.content) {
+        setStatus(currentData?.message ?? "Kategoriler kaydedilemedi.");
+        return;
+      }
 
-    if (!currentResponse.ok) {
+      const mergedContent = {
+        ...currentData.content,
+        home: {
+          ...currentData.content.home,
+          catalogFilters: contentDraft.home.catalogFilters,
+          showcaseCategories: contentDraft.home.showcaseCategories,
+        },
+      };
+
+      const { response: saveResponse, data: saveData } = await fetchJsonWithTimeout<{ message?: string; content?: SiteContent }>(
+        "/api/admin/content",
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ content: mergedContent }),
+        },
+      );
+
+      if (!saveResponse.ok) {
+        setStatus(saveData?.message ?? "Kategoriler kaydedilemedi.");
+        return;
+      }
+
+      if (saveData?.content) {
+        setContentDraft(saveData.content);
+      }
+      setStatus("Kategoriler kaydedildi.");
+    } catch (error) {
+      if (error instanceof DOMException && error.name === "AbortError") {
+        setStatus("Kategori kaydı zaman aşımına uğradı. Lütfen tekrar deneyin.");
+        return;
+      }
+      setStatus("Bağlantı hatası nedeniyle kategoriler kaydedilemedi.");
+    } finally {
       setSavingCategories(false);
-      setStatus(currentData.message ?? "Kategoriler kaydedilemedi.");
-      return;
     }
-
-    const mergedContent = {
-      ...currentData.content,
-      home: {
-        ...currentData.content.home,
-        catalogFilters: contentDraft.home.catalogFilters,
-        showcaseCategories: contentDraft.home.showcaseCategories,
-      },
-    };
-
-    const saveResponse = await fetch("/api/admin/content", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ content: mergedContent }),
-    });
-
-    const saveData = await saveResponse.json();
-    setSavingCategories(false);
-
-    if (!saveResponse.ok) {
-      setStatus(saveData.message ?? "Kategoriler kaydedilemedi.");
-      return;
-    }
-
-    setContentDraft(saveData.content);
-    setStatus("Kategoriler kaydedildi.");
   }
 
   async function logout() {
