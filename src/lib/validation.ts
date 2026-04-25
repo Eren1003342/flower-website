@@ -42,7 +42,7 @@ function sanitizeCategoryId(value: unknown, maxLength = 60): Category | null {
   if (!id) {
     return null;
   }
-  if (!/^[\p{L}\p{N}]+(?:-[\p{L}\p{N}]+)*$/u.test(id)) {
+  if (!/^[a-z0-9çğıöşü]+(?:-[a-z0-9çğıöşü]+)*$/.test(id)) {
     return null;
   }
   return id;
@@ -66,6 +66,23 @@ function sanitizeCategoryOptions(input: unknown, maxItems = 8): { id: Category; 
     output.push({ id, label });
   }
   return output;
+}
+
+export function validateCategoryOptionsInput(
+  input: unknown,
+  fieldLabel: "Katalog filtreleri" | "Vitrin kategorileri",
+  maxItems = 100,
+):
+  | { ok: true; options: { id: Category; label: string }[] }
+  | { ok: false; message: string } {
+  const options = sanitizeCategoryOptions(input, maxItems);
+  if (!options) {
+    return {
+      ok: false,
+      message: `${fieldLabel} geçersiz. ID alanında harf (Türkçe dahil), sayı ve tire kullanın.`,
+    };
+  }
+  return { ok: true, options };
 }
 
 function sanitizeUrl(value: unknown): string | null {

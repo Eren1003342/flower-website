@@ -10,7 +10,7 @@ function normalizeCategoryId(value: string) {
     .trim()
     .replace(/\s+/g, "-")
     .toLocaleLowerCase("tr-TR")
-    .replace(/[^\p{L}\p{N}-]/gu, "")
+    .replace(/[^a-z0-9çğıöşü-]/g, "")
     .replace(/-+/g, "-")
     .replace(/^-|-$/g, "");
 }
