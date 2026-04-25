@@ -145,7 +145,6 @@ export default async function Home() {
                       </div>
                       <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-black/40 to-black/5" />
                       <div className="relative z-10 h-full flex flex-col justify-end">
-                        <p className="text-[11px] uppercase tracking-[0.15em] text-cream-50/70 line-clamp-1">Kategori</p>
                         <p className="text-sm font-semibold text-cream-50 line-clamp-1">{card.label}</p>
                       </div>
                     </div>
@@ -225,27 +224,27 @@ export default async function Home() {
           </section>
 
           <section className="hidden md:flex max-w-6xl mx-auto px-4 w-full pb-14 justify-center">
-            <div className="w-full md:w-[920px] rounded-3xl border border-slate-700 bg-slate-950/90 shadow-2xl p-5 md:p-7">
+            <div className="w-full md:w-[920px] rounded-3xl border border-sage-200 dark:border-slate-700 bg-white/95 dark:bg-slate-950/90 shadow-2xl p-5 md:p-7">
               <div className="grid md:grid-cols-3 gap-4">
-                <div className="rounded-2xl bg-slate-900 p-4 flex items-start gap-3">
+                <div className="rounded-2xl bg-cream-50 dark:bg-slate-900 border border-sage-100 dark:border-slate-800 p-4 flex items-start gap-3">
                   <Flower2 className="w-5 h-5 text-rose-500 mt-1" />
                   <div>
-                    <p className="font-semibold text-cream-50">Butik Üretim</p>
-                    <p className="text-sm text-slate-300">Her tasarım atölyede elde hazırlanır.</p>
+                    <p className="font-semibold text-sage-900 dark:text-cream-50">Butik Üretim</p>
+                    <p className="text-sm text-sage-600 dark:text-slate-300">Her tasarım elde hazırlanır.</p>
                   </div>
                 </div>
-                <div className="rounded-2xl bg-slate-900 p-4 flex items-start gap-3">
+                <div className="rounded-2xl bg-cream-50 dark:bg-slate-900 border border-sage-100 dark:border-slate-800 p-4 flex items-start gap-3">
                   <Truck className="w-5 h-5 text-rose-500 mt-1" />
                   <div>
-                    <p className="font-semibold text-cream-50">Hızlı Teslimat</p>
-                    <p className="text-sm text-slate-300">Aynı gün sipariş planlama desteği.</p>
+                    <p className="font-semibold text-sage-900 dark:text-cream-50">Hızlı Teslimat</p>
+                    <p className="text-sm text-sage-600 dark:text-slate-300">Aynı gün sipariş planlama desteği.</p>
                   </div>
                 </div>
-                <div className="rounded-2xl bg-slate-900 p-4 flex items-start gap-3">
+                <div className="rounded-2xl bg-cream-50 dark:bg-slate-900 border border-sage-100 dark:border-slate-800 p-4 flex items-start gap-3">
                   <ShieldCheck className="w-5 h-5 text-rose-500 mt-1" />
                   <div>
-                    <p className="font-semibold text-cream-50">Güvenli Sipariş</p>
-                    <p className="text-sm text-slate-300">Instagram ve e-posta ile hızlı iletişim.</p>
+                    <p className="font-semibold text-sage-900 dark:text-cream-50">Güvenli Sipariş</p>
+                    <p className="text-sm text-sage-600 dark:text-slate-300">Instagram ve e-posta ile hızlı iletişim.</p>
                   </div>
                 </div>
               </div>

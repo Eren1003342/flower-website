@@ -17,24 +17,34 @@ export default function MobileHeroCarousel({ items }: { items: MobileHeroItem[] 
   const [activeIndex, setActiveIndex] = useState(() =>
     validItems.length > 0 ? Math.floor(Math.random() * validItems.length) : 0,
   );
+  const [isVisible, setIsVisible] = useState(true);
 
   useEffect(() => {
     if (validItems.length <= 1) {
       return;
     }
+
+    let fadeTimeout: ReturnType<typeof setTimeout> | null = null;
     const interval = setInterval(() => {
-      setActiveIndex((previous) => {
-        let next = Math.floor(Math.random() * validItems.length);
-        if (validItems.length > 1) {
+      setIsVisible(false);
+      fadeTimeout = setTimeout(() => {
+        setActiveIndex((previous) => {
+          let next = Math.floor(Math.random() * validItems.length);
           while (next === previous) {
             next = Math.floor(Math.random() * validItems.length);
           }
-        }
-        return next;
-      });
+          return next;
+        });
+        setIsVisible(true);
+      }, 240);
     }, 3000);
 
-    return () => clearInterval(interval);
+    return () => {
+      clearInterval(interval);
+      if (fadeTimeout) {
+        clearTimeout(fadeTimeout);
+      }
+    };
   }, [validItems]);
 
   const activeItem = validItems[activeIndex];
@@ -61,7 +71,7 @@ export default function MobileHeroCarousel({ items }: { items: MobileHeroItem[] 
       href={`/urun/${activeItem.slug}`}
       className="group lg:hidden mb-4 block rounded-2xl overflow-hidden border border-white/20 bg-black/25"
     >
-      <div className="relative h-56">
+      <div className={`relative h-56 transition-opacity duration-500 ease-in-out ${isVisible ? "opacity-100" : "opacity-25"}`}>
         <Image
           src={activeItem.image}
           alt={activeItem.name}
