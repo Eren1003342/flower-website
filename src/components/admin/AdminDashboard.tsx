@@ -5,6 +5,16 @@ import { useMemo, useState } from "react";
 import { Plus, Upload, Trash2, Save, LogOut, Heart, Sparkles } from "lucide-react";
 import type { Product, SiteContent, CategoryDisplayOption } from "@/lib/cms";
 
+function normalizeCategoryId(value: string) {
+  return value
+    .trim()
+    .replace(/\s+/g, "-")
+    .toLocaleLowerCase("tr-TR")
+    .replace(/[^\p{L}\p{N}-]/gu, "")
+    .replace(/-+/g, "-")
+    .replace(/^-|-$/g, "");
+}
+
 function blankProduct(): Product {
   return {
     id: crypto.randomUUID(),
@@ -416,9 +426,9 @@ export default function AdminDashboard({
               <Input label="Link Kısa Adı (Slug)" helper="Ürün linkinde görünür. Sadece küçük harf, sayı ve tire kullan: pastel-ruyasi-buket" value={draft.slug} onChange={(value) => setDraft((current) => ({ ...current, slug: value }))} />
               <Input
                 label="Kategori ID"
-                helper="Bu alan panelde yönettiğiniz kategori kimliğidir. Sadece küçük harf, sayı ve tire kullanın (örn: gelin-buketi)."
+                helper="Bu alan panelde yönettiğiniz kategori kimliğidir. Türkçe karakter kullanabilirsiniz (örn: saksı-çiçekleri)."
                 value={draft.category}
-                onChange={(value) => setDraft((current) => ({ ...current, category: value.toLowerCase().replace(/\s+/g, "-") }))}
+                onChange={(value) => setDraft((current) => ({ ...current, category: normalizeCategoryId(value) }))}
               />
               <Input label="Fiyat (TL)" helper="Sadece sayı girin. Örn: 1250" type="number" value={String(draft.price)} onChange={(value) => setDraft((current) => ({ ...current, price: Number(value) }))} />
             </div>
@@ -511,7 +521,7 @@ export default function AdminDashboard({
                     <div key={`catalog-${index}`} className="grid grid-cols-1 sm:grid-cols-[minmax(0,0.9fr)_minmax(0,1.25fr)_44px] gap-2">
                       <input
                         value={row.id}
-                        onChange={(event) => updateDisplayOption("catalogFilters", index, { id: event.target.value.toLowerCase().replace(/\s+/g, "-") })}
+                        onChange={(event) => updateDisplayOption("catalogFilters", index, { id: normalizeCategoryId(event.target.value) })}
                         placeholder="kategori-id"
                         className="min-w-0 rounded-xl border border-sage-200 dark:border-slate-700 bg-white dark:bg-slate-950 px-3 py-2 text-sm text-sage-800 dark:text-cream-50"
                         autoComplete="off"
@@ -546,7 +556,7 @@ export default function AdminDashboard({
                     <div key={`showcase-${index}`} className="grid grid-cols-1 sm:grid-cols-[minmax(0,0.9fr)_minmax(0,1.25fr)_44px] gap-2">
                       <input
                         value={row.id}
-                        onChange={(event) => updateDisplayOption("showcaseCategories", index, { id: event.target.value.toLowerCase().replace(/\s+/g, "-") })}
+                        onChange={(event) => updateDisplayOption("showcaseCategories", index, { id: normalizeCategoryId(event.target.value) })}
                         placeholder="kategori-id"
                         className="min-w-0 rounded-xl border border-sage-200 dark:border-slate-700 bg-white dark:bg-slate-950 px-3 py-2 text-sm text-sage-800 dark:text-cream-50"
                         autoComplete="off"

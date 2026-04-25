@@ -38,11 +38,11 @@ function sanitizeMultiline(value: unknown, maxLength = MAX_TEXT): string | null 
 }
 
 function sanitizeCategoryId(value: unknown, maxLength = 60): Category | null {
-  const id = sanitizeText(value, maxLength)?.toLowerCase();
+  const id = sanitizeText(value, maxLength)?.toLocaleLowerCase("tr-TR");
   if (!id) {
     return null;
   }
-  if (!/^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(id)) {
+  if (!/^[\p{L}\p{N}]+(?:-[\p{L}\p{N}]+)*$/u.test(id)) {
     return null;
   }
   return id;
@@ -189,6 +189,13 @@ export function validateSiteContentInput(input: unknown):
   const catalogFilters = sanitizeCategoryOptions(home.catalogFilters, 100);
   const showcaseCategories = sanitizeCategoryOptions(home.showcaseCategories, 100);
 
+  if (!catalogFilters || !showcaseCategories) {
+    return {
+      ok: false,
+      message: "Kategori ID geçersiz. Sadece harf (Türkçe dahil), sayı ve tire kullanın (örn: saksı-çiçekleri).",
+    };
+  }
+
   const nextContent: SiteContent = {
     brand: {
       name: sanitizeText(brand.name, 80) ?? "",
@@ -196,8 +203,8 @@ export function validateSiteContentInput(input: unknown):
     },
     home: {
       heroImage: sanitizeUrl(home.heroImage) ?? "",
-      catalogFilters: catalogFilters ?? [],
-      showcaseCategories: showcaseCategories ?? [],
+      catalogFilters,
+      showcaseCategories,
       heroBadge: sanitizeText(home.heroBadge, 120) ?? "",
       heroTitle: sanitizeMultiline(home.heroTitle, 200) ?? "",
       heroSubtitle: sanitizeMultiline(home.heroSubtitle, 1200) ?? "",
