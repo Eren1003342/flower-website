@@ -7,7 +7,7 @@ export default function ProductCard({ product }: { product: Product }) {
     product.images && product.images[0] ? product.images[0] : "/placeholder-flower.svg";
   return (
     <Link href={`/urun/${product.slug}`} className="group block">
-      <div className="bg-white dark:bg-slate-900 rounded-2xl overflow-hidden shadow-sm hover:shadow-md dark:shadow-slate-800/50 transition-all duration-300 relative aspect-[4/5] mb-3 sm:mb-4">
+      <div className="bg-white dark:bg-slate-900 rounded-2xl overflow-hidden shadow-sm hover:shadow-md dark:shadow-slate-800/50 ring-1 ring-slate-100 dark:ring-slate-800/80 transition-all duration-300 relative aspect-[4/5] mb-3 sm:mb-4">
         <Image
           src={imageUrl}
           alt={product.name}
@@ -22,10 +22,10 @@ export default function ProductCard({ product }: { product: Product }) {
         )}
       </div>
       <div>
-        <h3 className="font-sans text-[0.95rem] sm:text-[1.05rem] font-semibold tracking-tight text-slate-800 dark:text-cream-50 mb-1 group-hover:text-sage-600 transition-colors line-clamp-2">
+        <h3 className="font-sans text-[1rem] sm:text-[1.05rem] font-semibold tracking-tight text-slate-800 dark:text-cream-50 mb-1 group-hover:text-sage-600 transition-colors line-clamp-2">
           {product.name}
         </h3>
-        <p className="text-sage-600 dark:text-sage-200 font-medium text-sm sm:text-base">{product.price} ₺</p>
+        <p className="text-sage-700 dark:text-sage-200 font-semibold text-[0.95rem] sm:text-base">{product.price} ₺</p>
       </div>
     </Link>
   );

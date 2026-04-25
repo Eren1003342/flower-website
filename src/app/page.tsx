@@ -11,6 +11,7 @@ export default async function Home() {
   const aboutLines = content.home.aboutTitle.split("\n");
   const previewProducts = featuredProducts.slice(0, 8);
   const heroShowcase = featuredProducts.slice(0, 3);
+  const heroFeaturedProduct = featuredProducts[0];
   const categoryCards = (content.home.showcaseCategories.length > 0
     ? content.home.showcaseCategories
     : [
@@ -55,14 +56,16 @@ export default async function Home() {
                   <Sparkles className="w-4 h-4" />
                   {content.home.heroBadge}
                 </div>
-                <h1 className="font-serif text-3xl sm:text-5xl lg:text-6xl leading-[1.05] mb-5" style={{ fontFamily: "var(--font-playfair)" }}>
+                <h1 className="font-serif text-[2.15rem] sm:text-5xl lg:text-6xl leading-[1.05] mb-4 sm:mb-5" style={{ fontFamily: "var(--font-playfair)" }}>
                   {heroLines.map((line) => (
                     <span key={line} className="block">
                       {line}
                     </span>
                   ))}
                 </h1>
-                <p className="text-sm sm:text-lg text-cream-50/85 max-w-2xl leading-relaxed mb-6 sm:mb-8">{content.home.heroSubtitle}</p>
+                <p className="text-base sm:text-lg text-cream-50/85 max-w-2xl leading-relaxed mb-5 sm:mb-8">
+                  {content.home.heroSubtitle}
+                </p>
 
                 <div className="flex flex-col sm:flex-row sm:flex-wrap gap-3 mb-7 sm:mb-8">
                   <Link href="/katalog" className="inline-flex items-center justify-center gap-2 w-full sm:w-auto bg-cream-50 text-slate-900 px-7 py-3.5 rounded-full font-semibold shadow-xl hover:-translate-y-0.5 transition-all">
@@ -73,7 +76,34 @@ export default async function Home() {
                   </Link>
                 </div>
 
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 sm:gap-3">
+                <Link
+                  href={heroFeaturedProduct ? `/urun/${heroFeaturedProduct.slug}` : "/katalog"}
+                  className="group lg:hidden mb-4 block rounded-2xl overflow-hidden border border-white/20 bg-black/25"
+                >
+                  <div className="relative h-44">
+                    <Image
+                      src={heroFeaturedProduct?.images?.[0] ?? "/placeholder-flower.svg"}
+                      alt={heroFeaturedProduct?.name ?? "Öne çıkan çiçek tasarımı"}
+                      fill
+                      sizes="100vw"
+                      className="object-cover group-hover:scale-105 transition-transform duration-500"
+                    />
+                    <div className="absolute inset-0 bg-gradient-to-t from-black/75 via-black/30 to-transparent" />
+                    <div className="absolute inset-x-0 bottom-0 p-4">
+                      <p className="text-[11px] uppercase tracking-[0.2em] text-cream-50/80">Bugünün Öne Çıkanı</p>
+                      <p className="mt-1 text-base font-semibold text-cream-50 line-clamp-1">
+                        {heroFeaturedProduct?.name ?? "El Yapımı Çiçek Koleksiyonu"}
+                      </p>
+                      {heroFeaturedProduct && (
+                        <div className="mt-2 inline-flex items-center rounded-full bg-white/90 px-3 py-1 text-sm font-semibold text-slate-900">
+                          {heroFeaturedProduct.price} ₺
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                </Link>
+
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 sm:gap-3 lg:mt-0">
                   <div className="rounded-2xl border border-white/20 bg-white/10 p-4">
                     <div className="text-[10px] sm:text-sm uppercase tracking-[0.16em] text-cream-50/70">Koleksiyon</div>
                     <div className="text-[13px] sm:text-lg font-semibold mt-1 leading-tight">El Yapımı Buketler</div>
@@ -89,7 +119,7 @@ export default async function Home() {
                 </div>
               </div>
 
-              <div className="flex md:grid md:grid-rows-3 gap-3 overflow-x-auto md:overflow-visible hide-scrollbar pb-1 md:pb-0">
+              <div className="hidden lg:grid md:grid-rows-3 gap-3 overflow-x-auto md:overflow-visible hide-scrollbar pb-1 md:pb-0">
                 {heroShowcase.map((product, index) => (
                   <Link key={product.id} href={`/urun/${product.slug}`} className="group rounded-3xl overflow-hidden border border-white/20 bg-white/10 backdrop-blur-sm min-h-[130px] min-w-[78vw] sm:min-w-[48vw] md:min-w-0 relative">
                     <Image
@@ -110,7 +140,36 @@ export default async function Home() {
             </div>
           </section>
 
-          <section className="max-w-6xl mx-auto px-4 w-full mt-8 pb-8">
+          <section className="max-w-6xl mx-auto px-4 w-full mt-2 lg:hidden pb-6">
+            <div className="bg-slate-950/85 rounded-3xl border border-slate-700/70 shadow-2xl p-4">
+              <div className="flex items-center justify-between gap-4 mb-4">
+                <h2 className="font-serif text-xl text-cream-50">Kategori Vitrini</h2>
+                <Link href="/katalog" className="text-rose-300 hover:text-rose-200 transition-colors text-xs font-semibold tracking-wide uppercase">
+                  Tümünü Gör
+                </Link>
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                {categoryCards.slice(0, 4).map((card) => (
+                  <Link key={`mobile-${card.id}-${card.label}`} href={card.href} className="group">
+                    <div className="rounded-2xl border border-slate-700 bg-slate-950 p-2.5 text-center">
+                      <div className="relative mx-auto w-20 h-20 rounded-full overflow-hidden border-2 border-slate-700 shadow-md">
+                        <Image
+                          src={card.image}
+                          alt={card.label}
+                          fill
+                          sizes="96px"
+                          className="object-cover group-hover:scale-110 transition-transform duration-500"
+                        />
+                      </div>
+                      <p className="mt-2 text-xs font-semibold text-cream-50 line-clamp-1">{card.label}</p>
+                    </div>
+                  </Link>
+                ))}
+              </div>
+            </div>
+          </section>
+
+          <section className="hidden lg:block max-w-6xl mx-auto px-4 w-full mt-8 pb-8">
             <div className="bg-slate-950/85 rounded-3xl border border-slate-700/70 shadow-2xl p-5 md:p-6">
               <div className="flex items-center justify-between gap-4 mb-5">
                 <h2 className="font-serif text-2xl md:text-3xl text-cream-50">Kategori Vitrini</h2>
