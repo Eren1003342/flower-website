@@ -46,6 +46,9 @@ export default function AdminDashboard({
   const [savingCategories, setSavingCategories] = useState(false);
   const [pendingFile, setPendingFile] = useState<File | null>(null);
   const [pendingPreviewUrl, setPendingPreviewUrl] = useState<string | null>(null);
+  const [heroPendingFile, setHeroPendingFile] = useState<File | null>(null);
+  const [heroPendingPreviewUrl, setHeroPendingPreviewUrl] = useState<string | null>(null);
+  const [uploadingHeroImage, setUploadingHeroImage] = useState(false);
 
   async function fetchJsonWithTimeout<T>(input: RequestInfo | URL, init?: RequestInit, timeoutMs = 15000): Promise<{ response: Response; data: T | null }> {
     const controller = new AbortController();
@@ -199,6 +202,67 @@ export default function AdminDashboard({
     }
     await uploadImage(pendingFile);
     selectPendingFile(null);
+  }
+
+  function selectHeroPendingFile(file: File | null) {
+    if (heroPendingPreviewUrl) {
+      URL.revokeObjectURL(heroPendingPreviewUrl);
+    }
+    if (!file) {
+      setHeroPendingFile(null);
+      setHeroPendingPreviewUrl(null);
+      return;
+    }
+    setHeroPendingFile(file);
+    setHeroPendingPreviewUrl(URL.createObjectURL(file));
+  }
+
+  async function uploadHeroBackgroundImage() {
+    if (!heroPendingFile) {
+      setStatus("Önce bir arka plan görseli seçin.");
+      return;
+    }
+
+    setUploadingHeroImage(true);
+    setStatus("Ana ekran arka plan görseli yükleniyor...");
+    const formData = new FormData();
+    formData.append("file", heroPendingFile);
+
+    try {
+      const { response, data } = await fetchJsonWithTimeout<{ message?: string; url?: string }>(
+        "/api/admin/upload",
+        {
+          method: "POST",
+          body: formData,
+        },
+        20000,
+      );
+
+      if (!response.ok) {
+        setStatus(data?.message ?? "Arka plan görseli yüklenemedi.");
+        return;
+      }
+
+      if (!data?.url) {
+        setStatus("Arka plan görsel URL'i alınamadı.");
+        return;
+      }
+
+      setContentDraft((current) => ({
+        ...current,
+        home: { ...current.home, heroImage: data.url as string },
+      }));
+      selectHeroPendingFile(null);
+      setStatus("Arka plan görseli yüklendi. Kalıcı olması için 'Metinleri Kaydet' butonuna basın.");
+    } catch (error) {
+      if (error instanceof DOMException && error.name === "AbortError") {
+        setStatus("Arka plan görseli yükleme zaman aşımına uğradı. Lütfen tekrar deneyin.");
+        return;
+      }
+      setStatus("Bağlantı hatası nedeniyle arka plan görseli yüklenemedi.");
+    } finally {
+      setUploadingHeroImage(false);
+    }
   }
 
   async function saveContent() {
@@ -618,6 +682,32 @@ export default function AdminDashboard({
                 </p>
               </div>
 
+              <div className="flex flex-wrap items-center gap-2">
+                <label className="inline-flex items-center gap-2 rounded-full border border-sage-200 dark:border-slate-700 px-4 py-2 text-sm cursor-pointer text-sage-700 dark:text-sage-200">
+                  <Upload className="w-4 h-4" /> Dosya Seç
+                  <input
+                    type="file"
+                    accept="image/*"
+                    className="hidden"
+                    onChange={(event) => selectHeroPendingFile(event.target.files?.[0] ?? null)}
+                  />
+                </label>
+                <button
+                  type="button"
+                  onClick={uploadHeroBackgroundImage}
+                  disabled={!heroPendingFile || uploadingHeroImage}
+                  className="inline-flex items-center gap-2 rounded-full bg-sage-800 px-4 py-2 text-sm text-cream-50 hover:bg-sage-900 disabled:opacity-60"
+                >
+                  <Upload className="w-4 h-4" />
+                  {uploadingHeroImage ? "Yükleniyor..." : "Arka Planı Yükle"}
+                </button>
+                {heroPendingFile ? (
+                  <span className="text-xs text-sage-500 dark:text-sage-300 truncate max-w-full">
+                    Seçilen dosya: {heroPendingFile.name}
+                  </span>
+                ) : null}
+              </div>
+
               <Input
                 label="Görsel URL"
                 helper="URL'i değiştirince aşağıda önizleme anında güncellenir."
@@ -627,7 +717,7 @@ export default function AdminDashboard({
 
               <div className="relative w-full aspect-[16/7] rounded-2xl overflow-hidden border border-sage-200 dark:border-slate-700">
                 <Image
-                  src={contentDraft.home.heroImage || "/placeholder-flower.svg"}
+                  src={heroPendingPreviewUrl || contentDraft.home.heroImage || "/placeholder-flower.svg"}
                   alt="Ana ekran görsel önizleme"
                   fill
                   sizes="(max-width: 1024px) 100vw, 900px"

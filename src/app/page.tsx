@@ -1,6 +1,7 @@
 import Link from "next/link";
 import Image from "next/image";
 import ProductCard from "@/components/ProductCard";
+import MobileHeroCarousel from "@/components/MobileHeroCarousel";
 import AboutExpandableCards from "@/components/AboutExpandableCards";
 import { ArrowRight, Flower2, Sparkles, Truck, ShieldCheck } from "lucide-react";
 import { getProducts, getSiteContent } from "@/lib/cms";
@@ -11,7 +12,13 @@ export default async function Home() {
   const aboutLines = content.home.aboutTitle.split("\n");
   const previewProducts = featuredProducts.slice(0, 8);
   const heroShowcase = featuredProducts.slice(0, 3);
-  const heroFeaturedProduct = featuredProducts[0];
+  const mobileHeroItems = featuredProducts.map((product) => ({
+    id: product.id,
+    slug: product.slug,
+    name: product.name,
+    price: product.price,
+    image: product.images?.[0] ?? "/placeholder-flower.svg",
+  }));
   const categoryCards = (content.home.showcaseCategories.length > 0
     ? content.home.showcaseCategories
     : [
@@ -63,7 +70,7 @@ export default async function Home() {
                     </span>
                   ))}
                 </h1>
-                <p className="text-base sm:text-lg text-cream-50/85 max-w-2xl leading-relaxed mb-5 sm:mb-8">
+                <p className="hidden sm:block text-base sm:text-lg text-cream-50/85 max-w-2xl leading-relaxed mb-5 sm:mb-8">
                   {content.home.heroSubtitle}
                 </p>
 
@@ -76,34 +83,9 @@ export default async function Home() {
                   </Link>
                 </div>
 
-                <Link
-                  href={heroFeaturedProduct ? `/urun/${heroFeaturedProduct.slug}` : "/katalog"}
-                  className="group lg:hidden mb-4 block rounded-2xl overflow-hidden border border-white/20 bg-black/25"
-                >
-                  <div className="relative h-44">
-                    <Image
-                      src={heroFeaturedProduct?.images?.[0] ?? "/placeholder-flower.svg"}
-                      alt={heroFeaturedProduct?.name ?? "Öne çıkan çiçek tasarımı"}
-                      fill
-                      sizes="100vw"
-                      className="object-cover group-hover:scale-105 transition-transform duration-500"
-                    />
-                    <div className="absolute inset-0 bg-gradient-to-t from-black/75 via-black/30 to-transparent" />
-                    <div className="absolute inset-x-0 bottom-0 p-4">
-                      <p className="text-[11px] uppercase tracking-[0.2em] text-cream-50/80">Bugünün Öne Çıkanı</p>
-                      <p className="mt-1 text-base font-semibold text-cream-50 line-clamp-1">
-                        {heroFeaturedProduct?.name ?? "El Yapımı Çiçek Koleksiyonu"}
-                      </p>
-                      {heroFeaturedProduct && (
-                        <div className="mt-2 inline-flex items-center rounded-full bg-white/90 px-3 py-1 text-sm font-semibold text-slate-900">
-                          {heroFeaturedProduct.price} ₺
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                </Link>
+                <MobileHeroCarousel items={mobileHeroItems} />
 
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 sm:gap-3 lg:mt-0">
+                <div className="hidden sm:grid grid-cols-1 sm:grid-cols-3 gap-2 sm:gap-3 lg:mt-0">
                   <div className="rounded-2xl border border-white/20 bg-white/10 p-4">
                     <div className="text-[10px] sm:text-sm uppercase tracking-[0.16em] text-cream-50/70">Koleksiyon</div>
                     <div className="text-[13px] sm:text-lg font-semibold mt-1 leading-tight">El Yapımı Buketler</div>
@@ -141,27 +123,31 @@ export default async function Home() {
           </section>
 
           <section className="max-w-6xl mx-auto px-4 w-full mt-2 lg:hidden pb-6">
-            <div className="bg-slate-950/85 rounded-3xl border border-slate-700/70 shadow-2xl p-4">
+            <div className="rounded-3xl border border-sage-200/80 dark:border-white/15 bg-cream-50/90 dark:bg-white/10 backdrop-blur-md shadow-2xl p-4">
               <div className="flex items-center justify-between gap-4 mb-4">
-                <h2 className="font-serif text-xl text-cream-50">Kategori Vitrini</h2>
-                <Link href="/katalog" className="text-rose-300 hover:text-rose-200 transition-colors text-xs font-semibold tracking-wide uppercase">
+                <h2 className="font-serif text-xl text-sage-900 dark:text-cream-50">Kategori Vitrini</h2>
+                <Link href="/katalog" className="text-rose-600 dark:text-rose-300 hover:text-rose-700 dark:hover:text-rose-200 transition-colors text-xs font-semibold tracking-wide uppercase">
                   Tümünü Gör
                 </Link>
               </div>
               <div className="grid grid-cols-2 gap-3">
                 {categoryCards.slice(0, 4).map((card) => (
                   <Link key={`mobile-${card.id}-${card.label}`} href={card.href} className="group">
-                    <div className="rounded-2xl border border-slate-700 bg-slate-950 p-2.5 text-center">
-                      <div className="relative mx-auto w-20 h-20 rounded-full overflow-hidden border-2 border-slate-700 shadow-md">
+                    <div className="relative min-h-[128px] rounded-2xl overflow-hidden border border-sage-200/90 dark:border-white/20 bg-white/70 dark:bg-black/20 p-3">
+                      <div className="absolute inset-0">
                         <Image
                           src={card.image}
                           alt={card.label}
                           fill
-                          sizes="96px"
-                          className="object-cover group-hover:scale-110 transition-transform duration-500"
+                          sizes="(max-width: 768px) 50vw, 200px"
+                          className="object-cover group-hover:scale-110 transition-transform duration-700"
                         />
                       </div>
-                      <p className="mt-2 text-xs font-semibold text-cream-50 line-clamp-1">{card.label}</p>
+                      <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-black/40 to-black/5" />
+                      <div className="relative z-10 h-full flex flex-col justify-end">
+                        <p className="text-[11px] uppercase tracking-[0.15em] text-cream-50/70 line-clamp-1">Kategori</p>
+                        <p className="text-sm font-semibold text-cream-50 line-clamp-1">{card.label}</p>
+                      </div>
                     </div>
                   </Link>
                 ))}
@@ -170,22 +156,22 @@ export default async function Home() {
           </section>
 
           <section className="hidden lg:block max-w-6xl mx-auto px-4 w-full mt-8 pb-8">
-            <div className="bg-slate-950/85 rounded-3xl border border-slate-700/70 shadow-2xl p-5 md:p-6">
+            <div className="bg-cream-50/92 dark:bg-slate-950/85 rounded-3xl border border-sage-200/80 dark:border-slate-700/70 shadow-2xl p-5 md:p-6">
               <div className="flex items-center justify-between gap-4 mb-5">
-                <h2 className="font-serif text-2xl md:text-3xl text-cream-50">Kategori Vitrini</h2>
-                <Link href="/katalog" className="text-rose-300 hover:text-rose-200 transition-colors text-sm font-medium">
+                <h2 className="font-serif text-2xl md:text-3xl text-sage-900 dark:text-cream-50">Kategori Vitrini</h2>
+                <Link href="/katalog" className="text-rose-600 dark:text-rose-300 hover:text-rose-700 dark:hover:text-rose-200 transition-colors text-sm font-medium">
                   Tümünü Gör
                 </Link>
               </div>
               <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                 {categoryCards.map((card) => (
                   <Link key={`${card.id}-${card.label}`} href={card.href} className="group">
-                    <div className="rounded-2xl border border-slate-700 bg-slate-950 p-3 text-center">
-                      <div className="relative mx-auto w-24 h-24 md:w-28 md:h-28 rounded-full overflow-hidden border-4 border-slate-700 shadow-md">
+                    <div className="rounded-2xl border border-sage-200 dark:border-slate-700 bg-white/95 dark:bg-slate-950 p-3 text-center">
+                      <div className="relative mx-auto w-24 h-24 md:w-28 md:h-28 rounded-full overflow-hidden border-4 border-sage-300 dark:border-slate-700 shadow-md">
                         <Image src={card.image} alt={card.label} fill sizes="128px" className="object-cover group-hover:scale-110 transition-transform duration-500" />
                       </div>
-                      <p className="mt-3 text-sm font-semibold text-cream-50">{card.label}</p>
-                      <p className="mt-1 text-xs text-slate-300 line-clamp-1">{card.productName}</p>
+                      <p className="mt-3 text-sm font-semibold text-sage-900 dark:text-cream-50">{card.label}</p>
+                      <p className="mt-1 text-xs text-sage-600 dark:text-slate-300 line-clamp-1">{card.productName}</p>
                     </div>
                   </Link>
                 ))}
@@ -238,7 +224,7 @@ export default async function Home() {
             </div>
           </section>
 
-          <section className="max-w-6xl mx-auto px-4 w-full pb-14 flex justify-center">
+          <section className="hidden md:flex max-w-6xl mx-auto px-4 w-full pb-14 justify-center">
             <div className="w-full md:w-[920px] rounded-3xl border border-slate-700 bg-slate-950/90 shadow-2xl p-5 md:p-7">
               <div className="grid md:grid-cols-3 gap-4">
                 <div className="rounded-2xl bg-slate-900 p-4 flex items-start gap-3">
