@@ -235,30 +235,16 @@ export default function AdminDashboard({
     setSavingCategories(true);
     setStatus("Kategoriler kaydediliyor...");
     try {
-      const { response: currentResponse, data: currentData } = await fetchJsonWithTimeout<{ message?: string; content?: SiteContent }>(
-        "/api/admin/content",
-      );
-
-      if (!currentResponse.ok || !currentData?.content) {
-        setStatus(currentData?.message ?? "Kategoriler kaydedilemedi.");
-        return;
-      }
-
-      const mergedContent = {
-        ...currentData.content,
-        home: {
-          ...currentData.content.home,
-          catalogFilters: contentDraft.home.catalogFilters,
-          showcaseCategories: contentDraft.home.showcaseCategories,
-        },
-      };
-
       const { response: saveResponse, data: saveData } = await fetchJsonWithTimeout<{ message?: string; content?: SiteContent }>(
         "/api/admin/content",
         {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ content: mergedContent }),
+          body: JSON.stringify({
+            action: "save-categories",
+            catalogFilters: contentDraft.home.catalogFilters,
+            showcaseCategories: contentDraft.home.showcaseCategories,
+          }),
         },
       );
 
