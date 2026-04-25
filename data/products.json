@@ -1,0 +1,74 @@
+[
+  {
+    "id": "1",
+    "slug": "ipek-dokulu-gul",
+    "name": "İpek Dokulu Lila Gül",
+    "category": "buket",
+    "price": 850,
+    "description": "Sonsuz aşk gibi, hiç solmayacak bir hediye.",
+    "images": [
+      "/uploads/1777120232865-b751c25d-3486-4d90-9629-34440fb7a6a9.jpg"
+    ],
+    "inStock": true
+  },
+  {
+    "id": "2",
+    "slug": "ozel-tacli-buket",
+    "name": "Kişiye Özel Taçlı Buket",
+    "category": "ozel-gun",
+    "price": 1200,
+    "description": "Taç ve fiyonk detaylarıyla zenginleştirilmiş, el yapımı karışık saten çiçek buketi.",
+    "images": [
+      "/uploads/1777120755574-516e9a55-b7f1-4f22-9bf9-e16c57e0b535.jpg"
+    ],
+    "inStock": true
+  },
+  {
+    "id": "3",
+    "slug": "isiltili-pembe-demet",
+    "name": "Işıltılı Pembe Demet",
+    "category": "buket",
+    "price": 450,
+    "description": "Parıltılı pembe güller ve uyumlu kuru çiçeklerin birleşimi. El emeğiyle üretilmiş olup canlılığını asla yitirmez. Kalp detayı ve hediye kartı ile birlikte gönderilen, canlı ve neşeli bir hediye seçeneği.",
+    "images": [
+      "/uploads/1777120546124-8f0a68e7-57fd-45a8-8bb8-9b6d14893204.jpg"
+    ],
+    "inStock": true
+  },
+  {
+    "id": "4",
+    "slug": "siyah-hediye-buket",
+    "name": "Şık Siyah Kırmızı Hediye Buketi",
+    "category": "kuru-cicek",
+    "price": 650,
+    "description": "İnci detaylı, el yapımı siyah-kırmızı gül buketi. Kırmızı ve siyahın güçlü kontrastını yansıtan bu tasarım, özel günlerde iddialı, kalıcı ve şık bir hatıra bırakmak isteyenler için hazırlanmıştır.",
+    "images": [
+      "/uploads/1777121261107-9fe3e96c-a834-41d0-9002-9ac4da687d47.jpg"
+    ],
+    "inStock": true
+  },
+  {
+    "id": "5",
+    "slug": "ayicikli-krem-demet",
+    "name": "Ayıcıklı Kahve Krem Demet",
+    "category": "saksi",
+    "price": 550,
+    "description": "Ayıcık figürleri ve toprak renklerinin huzur veren uyumu. El emeğiyle üretilen bu özel aranjman, kuru çiçeklerle çevrelenmiş şık bir tasarıma sahiptir.",
+    "images": [
+      "/uploads/1777121400754-7f778085-465e-41c0-8e1b-86942272aaab.jpg"
+    ],
+    "inStock": true
+  },
+  {
+    "id": "6",
+    "slug": "altin-papatya",
+    "name": "Altın Paketlemeli Papatyalar",
+    "category": "saksi",
+    "price": 950,
+    "description": "Özel günlerinize ferahlık katacak, el emeği beyaz papatya aranjmanı. Yeşil yaprak detayları ve tasarım paketlemesiyle ömür boyu saklanabilecek, solmayan bir hediye.",
+    "images": [
+      "/uploads/1777121502519-62c7057e-2cce-4276-830f-ffb01ea50e0f.jpg"
+    ],
+    "inStock": true
+  }
+]

@@ -1,0 +1,81 @@
+{
+  "brand": {
+    "name": "Eleanor Çiçek",
+    "tagline": "El yapımı çiçek atölyesi"
+  },
+  "home": {
+    "heroImage": "https://images.unsplash.com/photo-1525310072745-f49212b5ac6d?q=80&w=2600&auto=format&fit=crop",
+    "catalogFilters": [
+      {
+        "id": "buket",
+        "label": "Buketler"
+      },
+      {
+        "id": "saksi",
+        "label": "Saksı Çiçekleri"
+      },
+      {
+        "id": "kuru-cicek",
+        "label": "Kuru Çiçek"
+      },
+      {
+        "id": "ozel-gun",
+        "label": "Özel Günler"
+      }
+    ],
+    "showcaseCategories": [
+      {
+        "id": "buket",
+        "label": "Buketler"
+      },
+      {
+        "id": "saksi",
+        "label": "Saksı Çiçekleri"
+      },
+      {
+        "id": "kuru-cicek",
+        "label": "Kuru Çiçek"
+      },
+      {
+        "id": "ozel-gun",
+        "label": "Özel Günler"
+      }
+    ],
+    "heroBadge": "Eleanor Çiçek Atelier",
+    "heroTitle": "Sevdiklerinizi\nMutlu Etmenin Yolu",
+    "heroSubtitle": "El yapımı çiçeklerle, her anı kalıcı bir tasarıma dönüştürüyoruz. Solmayan, özgün ve ilk bakışta fark edilen buketler burada.",
+    "heroPrimaryCta": "Koleksiyonu Keşfet",
+    "heroSecondaryCta": "Özel Tasarım İste",
+    "featuredTitle": "Öne Çıkanlar",
+    "featuredSubtitle": "Atölyemizin en sevilen el yapımı buketleri",
+    "aboutKicker": "Hikayemiz",
+    "aboutTitle": "Her çiçek bir duygu\nHer yaprak bir anı taşır.",
+    "aboutDescription": "Yılların verdiği tecrübe ve tasarıma olan sevgimizle, sizlere tamamen el yapımı çiçek koleksiyonları sunuyoruz. Atölyemizde tasarladığımız her bir buket, uzun ömürlü bir hatıra ve güçlü bir estetik etki bırakmak için özenle hazırlanır.",
+    "aboutLink": "Hakkımızda Daha Fazlası"
+  },
+  "about": {
+    "title": "Hikayemiz",
+    "subtitle": "El yapımı çiçeklerle özel anları kalıcı bir tasarıma dönüştürüyoruz.",
+    "heroImage": "https://images.unsplash.com/photo-1496739660309-8650a3cc18ab?q=80&w=2000&auto=format&fit=crop",
+    "intro": "Her buket, kağıdın sanatla buluştuğu bir tasarım objesi.",
+    "paragraphs": [
+      "Eleanor Çiçek, tamamen el yapımı çiçeklerden oluşan butik bir tasarım atölyesidir. Her parçayı kesimden boyamaya, katlamadan düzenlemeye kadar titizlikle elle üretiyoruz.",
+      "Doğum günü, yıldönümü, isteme, söz ve özel davetler için kişiye özel renk paletleriyle uzun ömürlü buketler hazırlıyoruz. Ürünlerimiz solmaz, formunu korur ve dekoratif bir anı olarak kalır.",
+      "Amacımız sadece hediye vermek değil; hissi, emeği ve estetiği tek bir tasarımda birleştirerek unutulmaz bir deneyim sunmaktır."
+    ]
+  },
+  "contact": {
+    "title": "Bize Ulaşın",
+    "subtitle": "Özel ölçü, renk ve konseptte el yapımı çiçek siparişleriniz için bize yazın.",
+    "addressLabel": "Adres",
+    "address": "Yıldırım, Bursa",
+    "instagramLabel": "Instagram",
+    "instagram": "@eleanor_cicek",
+    "emailLabel": "E-Posta",
+    "email": "merhaba@eleanorcicek.com",
+    "mapEmbed": "https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d12213.89389348613!2d29.0863906!3d40.1958926!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x14ca0e5e2e2e2e2b%3A0x7e7e7e7e7e7e7e7e!2sY%C4%B1ld%C4%B1r%C4%B1m%2C%20Bursa!5e0!3m2!1str!2str!4v1714080164843!5m2!1str!2str"
+  },
+  "footer": {
+    "description": "El yapımı çiçeklerle özel anlarınıza kalıcı bir estetik katıyoruz."
+  }
+}

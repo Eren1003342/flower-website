@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="800" height="1000" viewBox="0 0 800 1000" fill="none">
+  <rect width="800" height="1000" rx="48" fill="#F2EFE9"/>
+  <circle cx="400" cy="380" r="180" fill="#E28D86" fill-opacity="0.18"/>
+  <circle cx="310" cy="420" r="70" fill="#7B8E80" fill-opacity="0.18"/>
+  <circle cx="500" cy="430" r="90" fill="#D9C6A3" fill-opacity="0.35"/>
+  <path d="M400 510C382 585 350 660 315 735" stroke="#7B8E80" stroke-width="18" stroke-linecap="round"/>
+  <path d="M400 510C428 588 460 660 490 735" stroke="#7B8E80" stroke-width="18" stroke-linecap="round"/>
+  <rect x="282" y="730" width="236" height="150" rx="28" fill="#D19B7A"/>
+  <rect x="332" y="690" width="136" height="60" rx="20" fill="#C88A64"/>
+  <text x="400" y="910" text-anchor="middle" font-family="Arial, sans-serif" font-size="30" fill="#3C4A40">Eleanor Çiçek</text>
+  <text x="400" y="950" text-anchor="middle" font-family="Arial, sans-serif" font-size="22" fill="#7B8E80">El yapımı kağıt çiçek</text>
+</svg>
