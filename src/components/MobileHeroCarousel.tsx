@@ -13,26 +13,27 @@ type MobileHeroItem = {
 };
 
 export default function MobileHeroCarousel({ items }: { items: MobileHeroItem[] }) {
-  const DISPLAY_MS = 3000;
-  const TRANSITION_MS = 480;
+  const DISPLAY_MS = 3200;
+  const TRANSITION_MS = 620;
   const validItems = useMemo(() => items.filter((item) => item.slug && item.image), [items]);
   const [activeIndex, setActiveIndex] = useState(() =>
     validItems.length > 0 ? Math.floor(Math.random() * validItems.length) : 0,
   );
   const [incomingIndex, setIncomingIndex] = useState<number | null>(null);
-  const [isTransitioning, setIsTransitioning] = useState(false);
+  const [isTransitionRunning, setIsTransitionRunning] = useState(false);
   const activeIndexRef = useRef(activeIndex);
   const transitioningRef = useRef(false);
   const switchTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const preloadRequestRef = useRef(0);
+  const rafRef = useRef<number | null>(null);
 
   useEffect(() => {
     activeIndexRef.current = activeIndex;
   }, [activeIndex]);
 
   useEffect(() => {
-    transitioningRef.current = isTransitioning;
-  }, [isTransitioning]);
+    transitioningRef.current = isTransitionRunning;
+  }, [isTransitionRunning]);
 
   useEffect(() => {
     if (validItems.length <= 1) {
@@ -58,12 +59,20 @@ export default function MobileHeroCarousel({ items }: { items: MobileHeroItem[] 
           return;
         }
         setIncomingIndex(next);
-        setIsTransitioning(true);
+        setIsTransitionRunning(false);
+        if (rafRef.current) {
+          cancelAnimationFrame(rafRef.current);
+        }
+        rafRef.current = requestAnimationFrame(() => {
+          rafRef.current = requestAnimationFrame(() => {
+            setIsTransitionRunning(true);
+          });
+        });
 
         switchTimeoutRef.current = setTimeout(() => {
           setActiveIndex(next);
           setIncomingIndex(null);
-          setIsTransitioning(false);
+          setIsTransitionRunning(false);
         }, TRANSITION_MS);
       };
 
@@ -96,6 +105,9 @@ export default function MobileHeroCarousel({ items }: { items: MobileHeroItem[] 
     return () => {
       clearInterval(interval);
       preloadRequestRef.current += 1;
+      if (rafRef.current) {
+        cancelAnimationFrame(rafRef.current);
+      }
       if (switchTimeoutRef.current) {
         clearTimeout(switchTimeoutRef.current);
       }
@@ -105,7 +117,7 @@ export default function MobileHeroCarousel({ items }: { items: MobileHeroItem[] 
   const activeItem = validItems[activeIndex];
   const incomingItem =
     incomingIndex !== null && incomingIndex >= 0 ? validItems[incomingIndex] : null;
-  const clickableItem = isTransitioning && incomingItem ? incomingItem : activeItem;
+  const clickableItem = isTransitionRunning && incomingItem ? incomingItem : activeItem;
 
   function renderSlide(item: MobileHeroItem, className: string) {
     return (
@@ -114,6 +126,7 @@ export default function MobileHeroCarousel({ items }: { items: MobileHeroItem[] 
         style={{
           transitionDuration: `${TRANSITION_MS}ms`,
           transitionTimingFunction: "cubic-bezier(0.22, 1, 0.36, 1)",
+          willChange: "opacity, transform",
         }}
       >
         <Image src={item.image} alt={item.name} fill sizes="100vw" className="object-cover" />
@@ -155,15 +168,15 @@ export default function MobileHeroCarousel({ items }: { items: MobileHeroItem[] 
       <div className="relative h-56">
         {renderSlide(
           activeItem,
-          `absolute inset-0 transition-opacity ${
-            isTransitioning ? "opacity-0" : "opacity-100"
+          `absolute inset-0 transition-[opacity,transform] ${
+            isTransitionRunning ? "opacity-0 scale-[1.015]" : "opacity-100 scale-100"
           }`,
         )}
         {incomingItem
           ? renderSlide(
               incomingItem,
-              `absolute inset-0 transition-opacity ${
-                isTransitioning ? "opacity-100" : "opacity-0"
+              `absolute inset-0 transition-[opacity,transform] ${
+                isTransitionRunning ? "opacity-100 scale-100" : "opacity-0 scale-[1.04]"
               }`,
             )
           : null}

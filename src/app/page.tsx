@@ -9,6 +9,7 @@ import { getProducts, getSiteContent } from "@/lib/cms";
 export default async function Home() {
   const [featuredProducts, content] = await Promise.all([getProducts(), getSiteContent()]);
   const heroLines = content.home.heroTitle.split("\n");
+  const heroBadgeLabel = content.home.heroBadge.replace(/atelier/gi, "Atölyesi");
   const aboutLines = content.home.aboutTitle.split("\n");
   const previewProducts = featuredProducts.slice(0, 8);
   const heroShowcase = featuredProducts.slice(0, 3);
@@ -61,7 +62,7 @@ export default async function Home() {
               <div className="rounded-[2rem] border border-white/15 bg-white/10 backdrop-blur-md p-5 sm:p-6 md:p-9 text-cream-50 shadow-2xl">
                 <div className="mb-5 inline-flex items-center gap-2 rounded-full border border-cream-50/25 bg-white/10 px-4 py-2 text-xs md:text-sm tracking-[0.18em] uppercase text-cream-50/90">
                   <Sparkles className="w-4 h-4" />
-                  {content.home.heroBadge}
+                  {heroBadgeLabel}
                 </div>
                 <h1 className="font-serif text-[2.15rem] sm:text-5xl lg:text-6xl leading-[1.05] mb-4 sm:mb-5" style={{ fontFamily: "var(--font-playfair)" }}>
                   {heroLines.map((line) => (

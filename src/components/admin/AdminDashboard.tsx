@@ -2,8 +2,10 @@
 
 import Image from "next/image";
 import { useMemo, useState } from "react";
-import { Plus, Upload, Trash2, Save, LogOut, Heart, Sparkles } from "lucide-react";
-import type { Product, SiteContent, CategoryDisplayOption } from "@/lib/cms";
+import { LogOut, Plus, Save, Trash2, Upload } from "lucide-react";
+import type { Product, SiteContent } from "@/lib/cms";
+
+type SaveTone = "idle" | "success" | "error";
 
 function normalizeCategoryId(value: string) {
   return value
@@ -12,20 +14,61 @@ function normalizeCategoryId(value: string) {
     .toLocaleLowerCase("tr-TR")
     .replace(/[^a-z0-9çğıöşü-]/g, "")
     .replace(/-+/g, "-")
-    .replace(/^-+/g, "");
+    .replace(/^-+|-+$/g, "");
 }
 
-function blankProduct(): Product {
-  return {
-    id: crypto.randomUUID(),
-    slug: "",
-    name: "",
-    category: "buket",
-    price: 0,
-    description: "",
-    images: [],
-    inStock: true,
-  };
+function normalizeCategoryLabel(value: string) {
+  return value.trim().replace(/\s{2,}/g, " ");
+}
+
+function slugifyProductName(value: string) {
+  return value
+    .toLocaleLowerCase("tr-TR")
+    .replace(/[ç]/g, "c")
+    .replace(/[ğ]/g, "g")
+    .replace(/[ı]/g, "i")
+    .replace(/[ö]/g, "o")
+    .replace(/[ş]/g, "s")
+    .replace(/[ü]/g, "u")
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "");
+}
+
+function buildUniqueSlug(base: string, taken: Set<string>) {
+  const normalizedBase = base || "urun";
+  let candidate = normalizedBase;
+  let index = 2;
+  while (taken.has(candidate)) {
+    candidate = `${normalizedBase}-${index}`;
+    index += 1;
+  }
+  taken.add(candidate);
+  return candidate;
+}
+
+function sanitizeProductImageList(images: string[]) {
+  return images.map((image) => image.trim()).filter(Boolean);
+}
+
+function cloneProduct(product: Product): Product {
+  return { ...product, images: [...product.images] };
+}
+
+function getInitialCategoryLabels(content: SiteContent) {
+  const fromFilters = content.home.catalogFilters.map((item) => item.label);
+  const fromShowcase = content.home.showcaseCategories.map((item) => item.label);
+  const combined = [...fromFilters, ...fromShowcase].map(normalizeCategoryLabel).filter(Boolean);
+  return Array.from(new Set(combined));
+}
+
+function statusClasses(tone: SaveTone) {
+  if (tone === "success") {
+    return "border-emerald-200 bg-emerald-50 text-emerald-700 dark:border-emerald-900/70 dark:bg-emerald-950/40 dark:text-emerald-300";
+  }
+  if (tone === "error") {
+    return "border-rose-200 bg-rose-50 text-rose-700 dark:border-rose-900/70 dark:bg-rose-950/40 dark:text-rose-300";
+  }
+  return "border-sage-200 bg-sage-50 text-sage-700 dark:border-slate-700 dark:bg-slate-900 dark:text-sage-200";
 }
 
 export default function AdminDashboard({
@@ -35,22 +78,44 @@ export default function AdminDashboard({
   initialProducts: Product[];
   initialContent: SiteContent;
 }) {
-  const firstProduct = initialProducts[0] ?? null;
-  const initialHomeHeroImage = initialContent.home.heroImage ?? "";
-  const [products, setProducts] = useState(initialProducts);
-  const [selectedId, setSelectedId] = useState(firstProduct?.id ?? "new");
-  const [draft, setDraft] = useState<Product>(firstProduct ? { ...firstProduct, images: [...firstProduct.images] } : blankProduct());
-  const [contentDraft, setContentDraft] = useState(initialContent);
-  const [status, setStatus] = useState("");
-  const [saving, setSaving] = useState(false);
-  const [savingCategories, setSavingCategories] = useState(false);
-  const [pendingFile, setPendingFile] = useState<File | null>(null);
-  const [pendingPreviewUrl, setPendingPreviewUrl] = useState<string | null>(null);
-  const [heroPendingFile, setHeroPendingFile] = useState<File | null>(null);
-  const [heroPendingPreviewUrl, setHeroPendingPreviewUrl] = useState<string | null>(null);
-  const [uploadingHeroImage, setUploadingHeroImage] = useState(false);
+  const [productsDraft, setProductsDraft] = useState<Product[]>(initialProducts.map(cloneProduct));
+  const [selectedProductId, setSelectedProductId] = useState(initialProducts[0]?.id ?? "");
+  const [contentDraft, setContentDraft] = useState<SiteContent>(initialContent);
+  const [categoryLabels, setCategoryLabels] = useState<string[]>(getInitialCategoryLabels(initialContent));
 
-  async function fetchJsonWithTimeout<T>(input: RequestInfo | URL, init?: RequestInit, timeoutMs = 15000): Promise<{ response: Response; data: T | null }> {
+  const [status, setStatus] = useState("Hazır.");
+  const [statusTone, setStatusTone] = useState<SaveTone>("idle");
+  const [hasChanges, setHasChanges] = useState(false);
+  const [saving, setSaving] = useState(false);
+
+  const [pendingProductFile, setPendingProductFile] = useState<File | null>(null);
+  const [pendingProductPreviewUrl, setPendingProductPreviewUrl] = useState<string | null>(null);
+  const [pendingHeroFile, setPendingHeroFile] = useState<File | null>(null);
+  const [pendingHeroPreviewUrl, setPendingHeroPreviewUrl] = useState<string | null>(null);
+
+  const selectedProduct = useMemo(
+    () => productsDraft.find((product) => product.id === selectedProductId) ?? null,
+    [productsDraft, selectedProductId],
+  );
+
+  const categoryOptions = useMemo(() => {
+    const labels = categoryLabels.map(normalizeCategoryLabel).filter(Boolean);
+    const uniqueLabels = Array.from(new Set(labels));
+    return uniqueLabels
+      .map((label) => {
+        const id = normalizeCategoryId(label);
+        return id ? { id, label } : null;
+      })
+      .filter((item): item is { id: string; label: string } => Boolean(item));
+  }, [categoryLabels]);
+
+  function markDirty(successMessage = "Değişiklik yapıldı. Kaydetmeyi unutmayın.") {
+    setHasChanges(true);
+    setStatus(successMessage);
+    setStatusTone("idle");
+  }
+
+  async function fetchJsonWithTimeout<T>(input: RequestInfo | URL, init?: RequestInit, timeoutMs = 15000) {
     const controller = new AbortController();
     const timeout = setTimeout(() => controller.abort(), timeoutMs);
     try {
@@ -67,268 +132,293 @@ export default function AdminDashboard({
     }
   }
 
-  function selectProduct(nextId: string, list = products) {
-    setSelectedId(nextId);
-    if (nextId === "new") {
-      setDraft(blankProduct());
+  function updateSelectedProduct(next: Partial<Product>) {
+    if (!selectedProductId) {
       return;
     }
-    const selected = list.find((product) => product.id === nextId);
-    setDraft(selected ? { ...selected, images: [...selected.images] } : blankProduct());
+    setProductsDraft((current) =>
+      current.map((product) => (product.id === selectedProductId ? { ...product, ...next } : product)),
+    );
+    markDirty();
   }
 
-  function syncAfterListChange(nextList: Product[], preferredId: string) {
-    setProducts(nextList);
-    selectProduct(preferredId, nextList);
+  function updateSelectedProductImages(nextImages: string[]) {
+    updateSelectedProduct({ images: nextImages });
   }
 
-  const selectedProduct = useMemo(
-    () => (selectedId === "new" ? null : products.find((product) => product.id === selectedId) ?? null),
-    [products, selectedId],
-  );
-
-  async function saveProduct() {
-    setSaving(true);
-    setStatus("Ürün kaydediliyor...");
-    try {
-      const { response, data } = await fetchJsonWithTimeout<{ message?: string; products?: Product[] }>("/api/admin/products", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ action: "save", product: draft }),
-      });
-
-      if (!response.ok) {
-        setStatus(data?.message ?? "Ürün kaydedilemedi.");
-        return;
-      }
-
-      syncAfterListChange((data?.products ?? []) as Product[], draft.id);
-      setStatus("Ürün kaydedildi.");
-    } catch (error) {
-      if (error instanceof DOMException && error.name === "AbortError") {
-        setStatus("Kaydetme isteği zaman aşımına uğradı. Lütfen tekrar deneyin.");
-        return;
-      }
-      setStatus("Bağlantı hatası nedeniyle ürün kaydedilemedi.");
-    } finally {
-      setSaving(false);
-    }
+  function addNewProduct() {
+    const firstCategoryId = categoryOptions[0]?.id ?? "buket";
+    const newProduct: Product = {
+      id: crypto.randomUUID(),
+      slug: "",
+      name: "",
+      category: firstCategoryId,
+      price: 0,
+      description: "",
+      images: [],
+      inStock: true,
+    };
+    setProductsDraft((current) => [newProduct, ...current]);
+    setSelectedProductId(newProduct.id);
+    markDirty("Yeni ürün eklendi. Bilgileri doldurun.");
   }
 
-  async function deleteCurrentProduct() {
+  function deleteSelectedProduct() {
     if (!selectedProduct) {
       return;
     }
-
-    setSaving(true);
-    setStatus("Ürün siliniyor...");
-    try {
-      const { response, data } = await fetchJsonWithTimeout<{ message?: string; products?: Product[] }>("/api/admin/products", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ action: "delete", productId: selectedProduct.id }),
-      });
-
-      if (!response.ok) {
-        setStatus(data?.message ?? "Ürün silinemedi.");
-        return;
-      }
-
-      const nextProducts = data?.products ?? [];
-      syncAfterListChange(nextProducts, nextProducts[0]?.id ?? "new");
-      setStatus("Ürün silindi.");
-    } catch (error) {
-      if (error instanceof DOMException && error.name === "AbortError") {
-        setStatus("Silme isteği zaman aşımına uğradı. Lütfen tekrar deneyin.");
-        return;
-      }
-      setStatus("Bağlantı hatası nedeniyle ürün silinemedi.");
-    } finally {
-      setSaving(false);
+    const approved = window.confirm(`"${selectedProduct.name || "Bu ürün"}" silinsin mi?`);
+    if (!approved) {
+      return;
     }
+    setProductsDraft((current) => current.filter((product) => product.id !== selectedProduct.id));
+    setSelectedProductId((current) => {
+      if (current !== selectedProduct.id) {
+        return current;
+      }
+      const firstRemaining = productsDraft.find((item) => item.id !== selectedProduct.id);
+      return firstRemaining?.id ?? "";
+    });
+    markDirty("Ürün listeden kaldırıldı. Kalıcı olması için kaydedin.");
   }
 
-  async function uploadImage(file: File) {
+  async function uploadFile(file: File) {
     const formData = new FormData();
     formData.append("file", file);
+    return fetchJsonWithTimeout<{ message?: string; url?: string }>(
+      "/api/admin/upload",
+      { method: "POST", body: formData },
+      20000,
+    );
+  }
 
+  function clearPendingProductFile() {
+    if (pendingProductPreviewUrl) {
+      URL.revokeObjectURL(pendingProductPreviewUrl);
+    }
+    setPendingProductFile(null);
+    setPendingProductPreviewUrl(null);
+  }
+
+  function clearPendingHeroFile() {
+    if (pendingHeroPreviewUrl) {
+      URL.revokeObjectURL(pendingHeroPreviewUrl);
+    }
+    setPendingHeroFile(null);
+    setPendingHeroPreviewUrl(null);
+  }
+
+  function selectPendingProductFile(file: File | null) {
+    clearPendingProductFile();
+    if (!file) {
+      return;
+    }
+    setPendingProductFile(file);
+    setPendingProductPreviewUrl(URL.createObjectURL(file));
+  }
+
+  function selectPendingHeroFile(file: File | null) {
+    clearPendingHeroFile();
+    if (!file) {
+      return;
+    }
+    setPendingHeroFile(file);
+    setPendingHeroPreviewUrl(URL.createObjectURL(file));
+  }
+
+  async function uploadProductImage() {
+    if (!selectedProduct || !pendingProductFile) {
+      setStatus("Önce bir ürün ve görsel seçin.");
+      setStatusTone("error");
+      return;
+    }
+    setStatus("Ürün görseli yükleniyor...");
+    setStatusTone("idle");
     try {
-      const { response, data } = await fetchJsonWithTimeout<{ message?: string; url?: string }>(
-        "/api/admin/upload",
-        {
-          method: "POST",
-          body: formData,
-        },
-        20000,
-      );
-
-      if (!response.ok) {
+      const { response, data } = await uploadFile(pendingProductFile);
+      if (!response.ok || !data?.url) {
         setStatus(data?.message ?? "Görsel yüklenemedi.");
+        setStatusTone("error");
         return;
       }
-
-      if (!data?.url) {
-        setStatus("Görsel yanıtı alınamadı.");
-        return;
-      }
-
-      setDraft((current) => ({ ...current, images: [...current.images, data.url as string] }));
-      setStatus("Görsel eklendi.");
+      updateSelectedProductImages([...(selectedProduct.images ?? []), data.url]);
+      clearPendingProductFile();
+      setStatus("Ürün görseli eklendi. Kaydetmeyi unutmayın.");
+      setStatusTone("success");
     } catch (error) {
       if (error instanceof DOMException && error.name === "AbortError") {
-        setStatus("Görsel yükleme zaman aşımına uğradı. Lütfen tekrar deneyin.");
+        setStatus("Görsel yükleme zaman aşımına uğradı.");
+      } else {
+        setStatus("Görsel yüklenirken bağlantı hatası oluştu.");
+      }
+      setStatusTone("error");
+    }
+  }
+
+  async function uploadHeroImage() {
+    if (!pendingHeroFile) {
+      setStatus("Önce ana ekran arka plan görselini seçin.");
+      setStatusTone("error");
+      return;
+    }
+    setStatus("Ana ekran görseli yükleniyor...");
+    setStatusTone("idle");
+    try {
+      const { response, data } = await uploadFile(pendingHeroFile);
+      if (!response.ok || !data?.url) {
+        setStatus(data?.message ?? "Ana ekran görseli yüklenemedi.");
+        setStatusTone("error");
         return;
       }
-      setStatus("Bağlantı hatası nedeniyle görsel yüklenemedi.");
+      setContentDraft((current) => ({ ...current, home: { ...current.home, heroImage: data.url as string } }));
+      clearPendingHeroFile();
+      markDirty("Ana ekran görseli güncellendi.");
+      setStatusTone("success");
+    } catch (error) {
+      if (error instanceof DOMException && error.name === "AbortError") {
+        setStatus("Ana ekran görsel yükleme zaman aşımına uğradı.");
+      } else {
+        setStatus("Ana ekran görseli yüklenirken hata oluştu.");
+      }
+      setStatusTone("error");
     }
   }
 
-  function selectPendingFile(file: File | null) {
-    if (pendingPreviewUrl) {
-      URL.revokeObjectURL(pendingPreviewUrl);
-    }
-    if (!file) {
-      setPendingFile(null);
-      setPendingPreviewUrl(null);
-      return;
-    }
-    setPendingFile(file);
-    setPendingPreviewUrl(URL.createObjectURL(file));
+  function updateCategoryLabel(index: number, nextLabel: string) {
+    setCategoryLabels((current) => current.map((label, i) => (i === index ? nextLabel : label)));
+    markDirty();
   }
 
-  async function uploadPendingFile() {
-    if (!pendingFile) {
-      return;
-    }
-    await uploadImage(pendingFile);
-    selectPendingFile(null);
+  function addCategory() {
+    setCategoryLabels((current) => [...current, "Yeni Kategori"]);
+    markDirty();
   }
 
-  function selectHeroPendingFile(file: File | null) {
-    if (heroPendingPreviewUrl) {
-      URL.revokeObjectURL(heroPendingPreviewUrl);
-    }
-    if (!file) {
-      setHeroPendingFile(null);
-      setHeroPendingPreviewUrl(null);
-      return;
-    }
-    setHeroPendingFile(file);
-    setHeroPendingPreviewUrl(URL.createObjectURL(file));
+  function removeCategory(index: number) {
+    setCategoryLabels((current) => current.filter((_, i) => i !== index));
+    markDirty();
   }
 
-  async function uploadHeroBackgroundImage() {
-    if (!heroPendingFile) {
-      setStatus("Önce bir arka plan görseli seçin.");
+  function buildPreparedProducts() {
+    if (productsDraft.length === 0) {
+      return { ok: false as const, message: "En az bir ürün ekleyin." };
+    }
+    const availableCategoryIds = new Set(categoryOptions.map((item) => item.id));
+    if (availableCategoryIds.size === 0) {
+      return { ok: false as const, message: "En az bir geçerli kategori adı girin." };
+    }
+
+    const usedSlugs = new Set<string>();
+    const prepared = productsDraft.map((product) => {
+      const name = product.name.trim();
+      const description = product.description.trim();
+      const images = sanitizeProductImageList(product.images);
+      const slug = buildUniqueSlug(slugifyProductName(name), usedSlugs);
+      const category =
+        product.category && availableCategoryIds.has(product.category)
+          ? product.category
+          : categoryOptions[0].id;
+      return {
+        ...product,
+        id: product.id || crypto.randomUUID(),
+        slug,
+        name,
+        description,
+        category,
+        price: Number.isFinite(product.price) ? Math.max(0, Math.round(product.price)) : 0,
+        images,
+        inStock: Boolean(product.inStock),
+      };
+    });
+
+    const invalidIndex = prepared.findIndex(
+      (product) => !product.name || !product.description || product.images.length === 0,
+    );
+    if (invalidIndex >= 0) {
+      return {
+        ok: false as const,
+        message: `${invalidIndex + 1}. üründe ad, açıklama veya görsel eksik.`,
+      };
+    }
+
+    return { ok: true as const, products: prepared };
+  }
+
+  async function saveAllChanges() {
+    setSaving(true);
+    setStatus("Tüm değişiklikler kaydediliyor...");
+    setStatusTone("idle");
+
+    const preparedProducts = buildPreparedProducts();
+    if (!preparedProducts.ok) {
+      setStatus(preparedProducts.message);
+      setStatusTone("error");
+      setSaving(false);
       return;
     }
 
-    setUploadingHeroImage(true);
-    setStatus("Ana ekran arka plan görseli yükleniyor...");
-    const formData = new FormData();
-    formData.append("file", heroPendingFile);
+    const nextContent: SiteContent = {
+      ...contentDraft,
+      home: {
+        ...contentDraft.home,
+        catalogFilters: categoryOptions,
+        showcaseCategories: categoryOptions,
+      },
+    };
 
     try {
-      const { response, data } = await fetchJsonWithTimeout<{ message?: string; url?: string }>(
-        "/api/admin/upload",
+      const productsResult = await fetchJsonWithTimeout<{ message?: string; products?: Product[] }>(
+        "/api/admin/products",
         {
           method: "POST",
-          body: formData,
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ action: "replace-all", products: preparedProducts.products }),
         },
-        20000,
       );
 
-      if (!response.ok) {
-        setStatus(data?.message ?? "Arka plan görseli yüklenemedi.");
+      if (!productsResult.response.ok) {
+        setStatus(productsResult.data?.message ?? "Ürünler kaydedilemedi.");
+        setStatusTone("error");
         return;
       }
 
-      if (!data?.url) {
-        setStatus("Arka plan görsel URL'i alınamadı.");
-        return;
-      }
-
-      setContentDraft((current) => ({
-        ...current,
-        home: { ...current.home, heroImage: data.url as string },
-      }));
-      selectHeroPendingFile(null);
-      setStatus("Arka plan görseli yüklendi. Kalıcı olması için 'Metinleri Kaydet' butonuna basın.");
-    } catch (error) {
-      if (error instanceof DOMException && error.name === "AbortError") {
-        setStatus("Arka plan görseli yükleme zaman aşımına uğradı. Lütfen tekrar deneyin.");
-        return;
-      }
-      setStatus("Bağlantı hatası nedeniyle arka plan görseli yüklenemedi.");
-    } finally {
-      setUploadingHeroImage(false);
-    }
-  }
-
-  async function saveContent() {
-    setSaving(true);
-    setStatus("İçerik kaydediliyor...");
-    try {
-      const { response, data } = await fetchJsonWithTimeout<{ message?: string; content?: SiteContent }>("/api/admin/content", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ content: contentDraft }),
-      });
-
-      if (!response.ok) {
-        setStatus(data?.message ?? "İçerik kaydedilemedi.");
-        return;
-      }
-
-      if (data?.content) {
-        setContentDraft(data.content);
-      }
-      setStatus("İçerik kaydedildi.");
-    } catch (error) {
-      if (error instanceof DOMException && error.name === "AbortError") {
-        setStatus("Kaydetme isteği zaman aşımına uğradı. Lütfen tekrar deneyin.");
-        return;
-      }
-      setStatus("Bağlantı hatası nedeniyle içerik kaydedilemedi.");
-    } finally {
-      setSaving(false);
-    }
-  }
-
-  async function saveCategoriesOnly() {
-    setSavingCategories(true);
-    setStatus("Kategoriler kaydediliyor...");
-    try {
-      const { response: saveResponse, data: saveData } = await fetchJsonWithTimeout<{ message?: string; content?: SiteContent }>(
+      const contentResult = await fetchJsonWithTimeout<{ message?: string; content?: SiteContent }>(
         "/api/admin/content",
         {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            action: "save-categories",
-            catalogFilters: contentDraft.home.catalogFilters,
-            showcaseCategories: contentDraft.home.showcaseCategories,
-          }),
+          body: JSON.stringify({ content: nextContent }),
         },
       );
 
-      if (!saveResponse.ok) {
-        setStatus(saveData?.message ?? "Kategoriler kaydedilemedi.");
+      if (!contentResult.response.ok) {
+        setStatus(contentResult.data?.message ?? "Site ayarları kaydedilemedi.");
+        setStatusTone("error");
         return;
       }
 
-      if (saveData?.content) {
-        setContentDraft(saveData.content);
+      if (productsResult.data?.products) {
+        setProductsDraft(productsResult.data.products.map(cloneProduct));
+        if (!selectedProductId && productsResult.data.products[0]?.id) {
+          setSelectedProductId(productsResult.data.products[0].id);
+        }
       }
-      setStatus("Kategoriler kaydedildi.");
+      if (contentResult.data?.content) {
+        setContentDraft(contentResult.data.content);
+      }
+
+      setStatus("Her şey kaydedildi.");
+      setStatusTone("success");
+      setHasChanges(false);
     } catch (error) {
       if (error instanceof DOMException && error.name === "AbortError") {
-        setStatus("Kategori kaydı zaman aşımına uğradı. Lütfen tekrar deneyin.");
-        return;
+        setStatus("Kaydetme isteği zaman aşımına uğradı.");
+      } else {
+        setStatus("Kaydetme sırasında bağlantı hatası oluştu.");
       }
-      setStatus("Bağlantı hatası nedeniyle kategoriler kaydedilemedi.");
+      setStatusTone("error");
     } finally {
-      setSavingCategories(false);
+      setSaving(false);
     }
   }
 
@@ -337,436 +427,330 @@ export default function AdminDashboard({
     window.location.href = "/admin/giris";
   }
 
-  function updateDisplayOption(
-    key: "catalogFilters" | "showcaseCategories",
-    index: number,
-    next: Partial<CategoryDisplayOption>,
-  ) {
-    setContentDraft((current) => {
-      const list = [...current.home[key]];
-      const target = list[index];
-      if (!target) {
-        return current;
-      }
-      list[index] = { ...target, ...next };
-      return { ...current, home: { ...current.home, [key]: list } };
-    });
-  }
-
-  function addDisplayOption(key: "catalogFilters" | "showcaseCategories") {
-    setContentDraft((current) => ({
-      ...current,
-      home: {
-        ...current.home,
-        [key]: [...current.home[key], { id: "yeni-kategori", label: "Yeni Kategori" }],
-      },
-    }));
-  }
-
-  function removeDisplayOption(key: "catalogFilters" | "showcaseCategories", index: number) {
-    setContentDraft((current) => ({
-      ...current,
-      home: {
-        ...current.home,
-        [key]: current.home[key].filter((_, i) => i !== index),
-      },
-    }));
-  }
-
   return (
-    <div className="paper-stage min-h-screen">
-      <Heart className="absolute left-[6%] top-[12%] hidden xl:block w-12 h-12 text-rose-200/35 animate-float-slow" />
-      <Heart className="absolute right-[8%] top-[20%] hidden xl:block w-10 h-10 text-rose-200/30 animate-float-slower" />
-      <Sparkles className="absolute left-[10%] bottom-[14%] hidden xl:block w-8 h-8 text-cream-50/35 animate-float-slow" />
+    <div className="paper-stage min-h-screen pb-28 md:pb-8">
+      <div className="max-w-6xl mx-auto px-4 py-6 md:py-10 space-y-6">
+        <div className="rounded-3xl paper-surface p-5 md:p-7 flex flex-col gap-4">
+          <div className="flex items-start justify-between gap-3">
+            <div>
+              <p className="text-xs uppercase tracking-[0.22em] text-cream-50/70">Kolay Yönetim Paneli</p>
+              <h1 className="text-3xl md:text-4xl font-bold text-cream-50 mt-2" style={{ fontFamily: "var(--font-brand)" }}>
+                {contentDraft.brand.name}
+              </h1>
+              <p className="text-cream-50/80 mt-2 text-sm md:text-base">
+                Ürünleri ve ana sayfa metinlerini buradan kolayca güncelleyebilirsiniz.
+              </p>
+            </div>
+            <button
+              onClick={logout}
+              className="inline-flex items-center gap-2 rounded-full border border-white/20 px-4 py-2 text-cream-50 hover:bg-white/10"
+            >
+              <LogOut className="w-4 h-4" /> Çıkış
+            </button>
+          </div>
 
-      <div className="max-w-7xl mx-auto px-4 py-10 md:py-14 space-y-8 relative z-10">
-      <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 rounded-3xl paper-surface p-6 md:p-8">
-        <div>
-          <p className="text-xs uppercase tracking-[0.3em] text-cream-50/70">Yönetim Paneli</p>
-          <h1 className="text-4xl md:text-5xl font-bold text-cream-50 mt-2 tracking-tight" style={{ fontFamily: "var(--font-brand)" }}>
-            {contentDraft.brand.name} Admin
-          </h1>
-          <p className="text-cream-50/75 mt-2">Ürünleri, görselleri ve site metinlerini buradan yönetebilirsin.</p>
-        </div>
-        <div className="flex items-center gap-3">
-          <div className="text-sm text-cream-50/70 hidden md:block">{status}</div>
-          <button onClick={logout} className="inline-flex items-center gap-2 rounded-full border border-white/20 px-4 py-2 text-cream-50 hover:bg-white/10">
-            <LogOut className="w-4 h-4" /> Çıkış
+          <div className={`rounded-2xl border px-4 py-3 text-sm font-medium ${statusClasses(statusTone)}`}>
+            {status} {hasChanges ? "• Kaydedilmemiş değişiklik var." : ""}
+          </div>
+
+          <button
+            onClick={saveAllChanges}
+            disabled={saving}
+            className="hidden md:inline-flex self-start items-center gap-2 rounded-full bg-rose-500 px-5 py-3 text-white font-semibold hover:bg-rose-600 disabled:opacity-70"
+          >
+            <Save className="w-4 h-4" /> {saving ? "Kaydediliyor..." : "Tüm Değişiklikleri Kaydet"}
           </button>
         </div>
-      </div>
 
-      <div className="grid lg:grid-cols-[320px_minmax(0,1fr)] gap-6 items-start">
-        <aside className="rounded-3xl bg-white dark:bg-slate-900 p-5 md:p-6 border border-sage-100 dark:border-slate-800 shadow-lg">
-          <div className="flex items-center justify-between mb-4">
-            <h2 className="font-serif text-2xl text-sage-800 dark:text-cream-50">Ürünler</h2>
-            <button
-              onClick={() => {
-                selectProduct("new");
-              }}
-              className="inline-flex items-center gap-2 rounded-full bg-sage-800 text-cream-50 px-3 py-2 text-sm"
-            >
-              <Plus className="w-4 h-4" /> Yeni
-            </button>
-          </div>
-          <div className="space-y-2 max-h-[65vh] overflow-auto pr-1">
-            {products.map((product) => (
-              <button
-                key={product.id}
-                onClick={() => selectProduct(product.id)}
-                className={`w-full text-left rounded-2xl border px-4 py-3 transition-colors ${
-                  selectedId === product.id
-                    ? "border-sage-500 bg-sage-50 dark:bg-slate-800"
-                    : "border-sage-100 dark:border-slate-800 hover:bg-sage-50 dark:hover:bg-slate-800"
-                }`}
-              >
-                <div className="font-medium text-sage-800 dark:text-cream-50 truncate" title={product.name}>
-                  {product.name}
-                </div>
-                <div className="text-sm text-sage-500 dark:text-sage-300 truncate" title={`${product.price} ₺ · ${product.category}`}>
-                  {product.price} ₺ · {product.category}
-                </div>
-              </button>
-            ))}
-          </div>
-        </aside>
-
-        <section className="space-y-6">
-          <div className="rounded-3xl bg-white dark:bg-slate-900 p-6 md:p-8 border border-sage-100 dark:border-slate-800 shadow-lg">
-            <div className="flex items-center justify-between gap-3 mb-6">
-              <h2 className="font-serif text-3xl text-sage-800 dark:text-cream-50">Ürün Düzenle</h2>
-              <div className="flex items-center gap-2">
-                <label className="inline-flex items-center gap-2 rounded-full border border-sage-200 dark:border-slate-700 px-4 py-2 text-sm cursor-pointer text-sage-700 dark:text-sage-200">
-                  <Upload className="w-4 h-4" /> Dosya Seç
-                  <input type="file" accept="image/*" className="hidden" onChange={(event) => selectPendingFile(event.target.files?.[0] ?? null)} />
-                </label>
-                {selectedProduct && (
-                  <button onClick={deleteCurrentProduct} className="inline-flex items-center gap-2 rounded-full border border-rose-200 px-4 py-2 text-sm text-rose-500 hover:bg-rose-50">
-                    <Trash2 className="w-4 h-4" /> Sil
-                  </button>
-                )}
-              </div>
-            </div>
-
-            {pendingPreviewUrl && (
-              <div className="mb-6 rounded-2xl border border-sage-200 dark:border-slate-700 bg-sage-50/60 dark:bg-slate-950 p-4">
-                <p className="text-sm font-medium text-sage-800 dark:text-cream-50 mb-3">Yükleme Önizlemesi</p>
-                <div className="flex flex-col sm:flex-row gap-4 items-start">
-                  <div className="relative w-32 h-32 rounded-2xl overflow-hidden border border-sage-200 dark:border-slate-700">
-                    <Image src={pendingPreviewUrl} alt="Seçilen görsel" fill sizes="128px" className="object-cover" unoptimized />
-                  </div>
-                  <div className="space-y-2 text-sm text-sage-600 dark:text-sage-300">
-                    <p><span className="font-medium">Dosya:</span> {pendingFile?.name}</p>
-                    <p><span className="font-medium">Boyut:</span> {pendingFile ? `${Math.round(pendingFile.size / 1024)} KB` : "-"}</p>
-                    <div className="flex flex-wrap gap-2 pt-2">
-                      <button onClick={uploadPendingFile} className="inline-flex items-center gap-2 rounded-full bg-sage-800 text-cream-50 px-4 py-2 text-sm hover:bg-sage-900">
-                        <Upload className="w-4 h-4" /> Bu Görseli Ekle
-                      </button>
-                      <button onClick={() => selectPendingFile(null)} className="inline-flex items-center gap-2 rounded-full border border-rose-200 text-rose-500 px-4 py-2 text-sm hover:bg-rose-50 dark:hover:bg-rose-950/30">
-                        Vazgeç
-                      </button>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            )}
-
-            <div className="grid md:grid-cols-2 gap-4">
-              <Input label="Ürün Adı" helper="Örn: Pastel Rüyası Buketi" value={draft.name} onChange={(value) => setDraft((current) => ({ ...current, name: value }))} />
-              <Input label="Link Kısa Adı (Slug)" helper="Ürün linkinde görünür. Sadece küçük harf, sayı ve tire kullan: pastel-ruyasi-buket" value={draft.slug} onChange={(value) => setDraft((current) => ({ ...current, slug: value }))} />
-              <Input
-                label="Kategori ID"
-                helper="Bu alan panelde yönettiğiniz kategori kimliğidir. Türkçe karakter kullanabilirsiniz (örn: saksı-çiçekleri)."
-                value={draft.category}
-                onChange={(value) => setDraft((current) => ({ ...current, category: normalizeCategoryId(value) }))}
-              />
-              <Input label="Fiyat (TL)" helper="Sadece sayı girin. Örn: 1250" type="number" value={String(draft.price)} onChange={(value) => setDraft((current) => ({ ...current, price: Number(value) }))} />
-            </div>
-
-            <div className="mt-4">
-              <label className="block text-sm font-medium text-sage-700 dark:text-sage-200 mb-2">Açıklama</label>
-              <textarea
-                value={draft.description}
-                onChange={(event) => setDraft((current) => ({ ...current, description: event.target.value }))}
-                className="w-full min-h-36 rounded-2xl border border-sage-200 dark:border-slate-700 bg-white dark:bg-slate-950 px-4 py-3 text-sage-800 dark:text-cream-50 outline-none focus:border-sage-500"
-              />
-            </div>
-
-            <div className="mt-4 flex items-center gap-3">
-              <label className="flex items-center gap-3 text-sage-700 dark:text-sage-200">
-                <input type="checkbox" checked={draft.inStock} onChange={(event) => setDraft((current) => ({ ...current, inStock: event.target.checked }))} />
-                Stokta
-              </label>
-            </div>
-
-            <div className="mt-6">
-              <div className="flex items-center justify-between mb-3">
-                <div>
-                  <h3 className="font-medium text-sage-800 dark:text-cream-50">Görseller</h3>
-                  <p className="text-xs text-sage-500 dark:text-sage-300 mt-1">&quot;Görsel alanı ekle&quot; ile internetten bir görsel URL&apos;i yapıştırabilirsin. Her alanın sağındaki Sil ile kaldırabilirsin.</p>
-                </div>
-                <button onClick={() => setDraft((current) => ({ ...current, images: [...current.images, ""] }))} className="text-sm text-rose-500">
-                  Görsel alanı ekle
-                </button>
-              </div>
-              <div className="space-y-3">
-                {draft.images.map((image, index) => (
-                  <div key={`${index}-${image}`} className="rounded-2xl border border-sage-200 dark:border-slate-700 p-3 bg-sage-50/40 dark:bg-slate-950/70">
-                    <div className="flex items-center gap-2">
-                      <input
-                        value={image}
-                        onChange={(event) =>
-                          setDraft((current) => {
-                            const nextImages = [...current.images];
-                            nextImages[index] = event.target.value;
-                            return { ...current, images: nextImages };
-                          })
-                        }
-                        placeholder="https://..."
-                        className="w-full rounded-2xl border border-sage-200 dark:border-slate-700 bg-white dark:bg-slate-950 px-4 py-3 text-sage-800 dark:text-cream-50 outline-none focus:border-sage-500"
-                      />
-                      <button
-                        onClick={() =>
-                          setDraft((current) => {
-                            const nextImages = current.images.filter((_, i) => i !== index);
-                            return { ...current, images: nextImages };
-                          })
-                        }
-                        className="inline-flex items-center justify-center rounded-xl border border-rose-200 px-3 py-3 text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-950/30"
-                        aria-label="Görsel alanını sil"
-                      >
-                        <Trash2 className="w-4 h-4" />
-                      </button>
-                    </div>
-                    {image && (
-                      <div className="relative mt-3 w-20 h-20 rounded-xl overflow-hidden border border-sage-200 dark:border-slate-700">
-                        <Image src={image} alt={`Görsel ${index + 1}`} fill sizes="80px" className="object-cover" unoptimized />
-                      </div>
-                    )}
-                  </div>
-                ))}
-              </div>
-            </div>
-
-            <button onClick={saveProduct} disabled={saving} className="mt-6 inline-flex items-center gap-2 rounded-full bg-sage-800 px-5 py-3 text-cream-50 font-medium hover:bg-sage-900 disabled:opacity-70">
-              <Save className="w-4 h-4" /> {saving ? "Kaydediliyor..." : "Ürünü Kaydet"}
-            </button>
-          </div>
-
-          <div className="rounded-3xl bg-white dark:bg-slate-900 p-6 md:p-8 border border-sage-100 dark:border-slate-800 shadow-lg space-y-5">
+        <div className="grid lg:grid-cols-[300px_minmax(0,1fr)] gap-6">
+          <aside className="rounded-3xl bg-white dark:bg-slate-900 border border-sage-100 dark:border-slate-800 p-5 shadow-lg space-y-4">
             <div className="flex items-center justify-between">
-              <h2 className="font-serif text-3xl text-sage-800 dark:text-cream-50">Kategoriler</h2>
-              <p className="text-sm text-sage-500 dark:text-sage-300">Katalog ve vitrin kartlarını yönet</p>
-            </div>
-            <div className="grid xl:grid-cols-2 gap-5">
-              <div className="rounded-2xl border border-sage-200 dark:border-slate-700 p-4 bg-sage-50/60 dark:bg-slate-950/70 space-y-3">
-                <div className="flex items-center justify-between gap-2">
-                  <h4 className="font-semibold text-sage-800 dark:text-cream-50">Katalog Filtreleri</h4>
-                  <button type="button" onClick={() => addDisplayOption("catalogFilters")} className="text-sm text-rose-500 font-medium">
-                    + Ekle
-                  </button>
-                </div>
-                <div className="space-y-2">
-                  {contentDraft.home.catalogFilters.map((row, index) => (
-                    <div key={`catalog-${index}`} className="grid grid-cols-1 sm:grid-cols-[minmax(0,0.9fr)_minmax(0,1.25fr)_44px] gap-2">
-                      <input
-                        value={row.id}
-                        onChange={(event) => updateDisplayOption("catalogFilters", index, { id: normalizeCategoryId(event.target.value) })}
-                        placeholder="kategori-id"
-                        className="min-w-0 rounded-xl border border-sage-200 dark:border-slate-700 bg-white dark:bg-slate-950 px-3 py-2 text-sm text-sage-800 dark:text-cream-50"
-                        autoComplete="off"
-                      />
-                      <input
-                        value={row.label}
-                        onChange={(event) => updateDisplayOption("catalogFilters", index, { label: event.target.value })}
-                        placeholder="Görünen başlık"
-                        className="min-w-0 rounded-xl border border-sage-200 dark:border-slate-700 bg-white dark:bg-slate-950 px-3 py-2 text-sm text-sage-800 dark:text-cream-50"
-                      />
-                      <button
-                        type="button"
-                        onClick={() => removeDisplayOption("catalogFilters", index)}
-                        className="inline-flex h-11 w-11 items-center justify-center rounded-lg border border-rose-200 p-0 text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-950/30"
-                      >
-                        <Trash2 className="w-4 h-4" />
-                      </button>
-                    </div>
-                  ))}
-                </div>
-              </div>
-
-              <div className="rounded-2xl border border-sage-200 dark:border-slate-700 p-4 bg-sage-50/60 dark:bg-slate-950/70 space-y-3">
-                <div className="flex items-center justify-between gap-2">
-                  <h4 className="font-semibold text-sage-800 dark:text-cream-50">Ana Sayfa Kategori Vitrini</h4>
-                  <button type="button" onClick={() => addDisplayOption("showcaseCategories")} className="text-sm text-rose-500 font-medium">
-                    + Ekle
-                  </button>
-                </div>
-                <div className="space-y-2">
-                  {contentDraft.home.showcaseCategories.map((row, index) => (
-                    <div key={`showcase-${index}`} className="grid grid-cols-1 sm:grid-cols-[minmax(0,0.9fr)_minmax(0,1.25fr)_44px] gap-2">
-                      <input
-                        value={row.id}
-                        onChange={(event) => updateDisplayOption("showcaseCategories", index, { id: normalizeCategoryId(event.target.value) })}
-                        placeholder="kategori-id"
-                        className="min-w-0 rounded-xl border border-sage-200 dark:border-slate-700 bg-white dark:bg-slate-950 px-3 py-2 text-sm text-sage-800 dark:text-cream-50"
-                        autoComplete="off"
-                      />
-                      <input
-                        value={row.label}
-                        onChange={(event) => updateDisplayOption("showcaseCategories", index, { label: event.target.value })}
-                        placeholder="Görünen başlık"
-                        className="min-w-0 rounded-xl border border-sage-200 dark:border-slate-700 bg-white dark:bg-slate-950 px-3 py-2 text-sm text-sage-800 dark:text-cream-50"
-                      />
-                      <button
-                        type="button"
-                        onClick={() => removeDisplayOption("showcaseCategories", index)}
-                        className="inline-flex h-11 w-11 items-center justify-center rounded-lg border border-rose-200 p-0 text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-950/30"
-                      >
-                        <Trash2 className="w-4 h-4" />
-                      </button>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            </div>
-            <div className="flex justify-end">
+              <h2 className="font-serif text-2xl text-sage-800 dark:text-cream-50">Ürünler</h2>
               <button
                 type="button"
-                onClick={saveCategoriesOnly}
-                disabled={savingCategories}
-                className="inline-flex items-center gap-2 rounded-full bg-sage-800 px-5 py-3 text-cream-50 font-medium hover:bg-sage-900 disabled:opacity-70"
+                onClick={addNewProduct}
+                className="inline-flex items-center gap-1 rounded-full bg-sage-800 px-3 py-2 text-sm text-cream-50"
               >
-                <Save className="w-4 h-4" /> {savingCategories ? "Kaydediliyor..." : "Kategorileri Kaydet"}
+                <Plus className="w-4 h-4" /> Yeni
               </button>
             </div>
-          </div>
-
-          <div className="rounded-3xl bg-white dark:bg-slate-900 p-6 md:p-8 border border-sage-100 dark:border-slate-800 shadow-lg space-y-6">
-            <h2 className="font-serif text-3xl text-sage-800 dark:text-cream-50">Site Metinleri</h2>
-
-            <div className="grid md:grid-cols-2 gap-4">
-              <Input label="Marka Adı" value={contentDraft.brand.name} onChange={(value) => setContentDraft((current) => ({ ...current, brand: { ...current.brand, name: value } }))} />
-              <Input label="Marka Sloganı" value={contentDraft.brand.tagline} onChange={(value) => setContentDraft((current) => ({ ...current, brand: { ...current.brand, tagline: value } }))} />
-              <Input label="Hero Rozeti" value={contentDraft.home.heroBadge} onChange={(value) => setContentDraft((current) => ({ ...current, home: { ...current.home, heroBadge: value } }))} />
-              <Input label="Hero Başlığı" value={contentDraft.home.heroTitle} onChange={(value) => setContentDraft((current) => ({ ...current, home: { ...current.home, heroTitle: value } }))} />
-              <Input label="Hero Açıklaması" value={contentDraft.home.heroSubtitle} onChange={(value) => setContentDraft((current) => ({ ...current, home: { ...current.home, heroSubtitle: value } }))} />
-              <Input label="Hero Birincil Buton" value={contentDraft.home.heroPrimaryCta} onChange={(value) => setContentDraft((current) => ({ ...current, home: { ...current.home, heroPrimaryCta: value } }))} />
-              <Input label="Hero İkincil Buton" value={contentDraft.home.heroSecondaryCta} onChange={(value) => setContentDraft((current) => ({ ...current, home: { ...current.home, heroSecondaryCta: value } }))} />
-              <Input label="Öne Çıkan Başlık" value={contentDraft.home.featuredTitle} onChange={(value) => setContentDraft((current) => ({ ...current, home: { ...current.home, featuredTitle: value } }))} />
-              <Input label="Öne Çıkan Alt Metin" value={contentDraft.home.featuredSubtitle} onChange={(value) => setContentDraft((current) => ({ ...current, home: { ...current.home, featuredSubtitle: value } }))} />
-              <Input label="Hakkımızda Etiketi" value={contentDraft.home.aboutKicker} onChange={(value) => setContentDraft((current) => ({ ...current, home: { ...current.home, aboutKicker: value } }))} />
-              <Input label="Hakkımızda Blok Başlığı" value={contentDraft.home.aboutTitle} onChange={(value) => setContentDraft((current) => ({ ...current, home: { ...current.home, aboutTitle: value } }))} />
-              <Input label="Hakkımızda Blok Açıklaması" value={contentDraft.home.aboutDescription} onChange={(value) => setContentDraft((current) => ({ ...current, home: { ...current.home, aboutDescription: value } }))} />
-              <Input label="Hakkımızda Link Metni" value={contentDraft.home.aboutLink} onChange={(value) => setContentDraft((current) => ({ ...current, home: { ...current.home, aboutLink: value } }))} />
-              <Input label="Hakkımızda Başlığı" value={contentDraft.about.title} onChange={(value) => setContentDraft((current) => ({ ...current, about: { ...current.about, title: value } }))} />
-              <Input label="Hakkımızda Alt Metin" value={contentDraft.about.subtitle} onChange={(value) => setContentDraft((current) => ({ ...current, about: { ...current.about, subtitle: value } }))} />
-              <Input label="Hakkımızda Giriş Metni" value={contentDraft.about.intro} onChange={(value) => setContentDraft((current) => ({ ...current, about: { ...current.about, intro: value } }))} />
-              <Input label="Hakkımızda Kapak Görseli" value={contentDraft.about.heroImage} onChange={(value) => setContentDraft((current) => ({ ...current, about: { ...current.about, heroImage: value } }))} />
-              <Input label="İletişim Başlığı" value={contentDraft.contact.title} onChange={(value) => setContentDraft((current) => ({ ...current, contact: { ...current.contact, title: value } }))} />
-              <Input label="İletişim Alt Metin" value={contentDraft.contact.subtitle} onChange={(value) => setContentDraft((current) => ({ ...current, contact: { ...current.contact, subtitle: value } }))} />
-              <Input label="Adres Başlığı" value={contentDraft.contact.addressLabel} onChange={(value) => setContentDraft((current) => ({ ...current, contact: { ...current.contact, addressLabel: value } }))} />
-              <Input label="Adres" value={contentDraft.contact.address} onChange={(value) => setContentDraft((current) => ({ ...current, contact: { ...current.contact, address: value } }))} />
-              <Input label="Instagram Başlığı" value={contentDraft.contact.instagramLabel} onChange={(value) => setContentDraft((current) => ({ ...current, contact: { ...current.contact, instagramLabel: value } }))} />
-              <Input label="Instagram Kullanıcı Adı" value={contentDraft.contact.instagram} onChange={(value) => setContentDraft((current) => ({ ...current, contact: { ...current.contact, instagram: value } }))} />
-              <Input label="E-Posta Başlığı" value={contentDraft.contact.emailLabel} onChange={(value) => setContentDraft((current) => ({ ...current, contact: { ...current.contact, emailLabel: value } }))} />
-              <Input label="E-Posta" value={contentDraft.contact.email} onChange={(value) => setContentDraft((current) => ({ ...current, contact: { ...current.contact, email: value } }))} />
-              <Input label="Harita Embed URL" value={contentDraft.contact.mapEmbed} onChange={(value) => setContentDraft((current) => ({ ...current, contact: { ...current.contact, mapEmbed: value } }))} />
-              <Input label="Footer Metni" value={contentDraft.footer.description} onChange={(value) => setContentDraft((current) => ({ ...current, footer: { ...current.footer, description: value } }))} />
-            </div>
-
-            <div className="rounded-2xl border border-sage-200 dark:border-slate-700 p-4 md:p-5 bg-sage-50/50 dark:bg-slate-950/70 space-y-4">
-              <div>
-                <h3 className="font-serif text-2xl text-sage-800 dark:text-cream-50">Ana Ekran Arka Plan Görseli</h3>
-                <p className="text-sm text-sage-500 dark:text-sage-300 mt-1">
-                  Buradaki görsel ana sayfadaki üst bölümde ve Öne Çıkarılanlar&apos;a kadar kullanılan arka plandır.
-                </p>
-              </div>
-
-              <div className="flex flex-wrap items-center gap-2">
-                <label className="inline-flex items-center gap-2 rounded-full border border-sage-200 dark:border-slate-700 px-4 py-2 text-sm cursor-pointer text-sage-700 dark:text-sage-200">
-                  <Upload className="w-4 h-4" /> Dosya Seç
-                  <input
-                    type="file"
-                    accept="image/*"
-                    className="hidden"
-                    onChange={(event) => selectHeroPendingFile(event.target.files?.[0] ?? null)}
-                  />
-                </label>
+            <div className="space-y-2 max-h-[58vh] overflow-auto pr-1">
+              {productsDraft.map((product) => (
                 <button
-                  type="button"
-                  onClick={uploadHeroBackgroundImage}
-                  disabled={!heroPendingFile || uploadingHeroImage}
-                  className="inline-flex items-center gap-2 rounded-full bg-sage-800 px-4 py-2 text-sm text-cream-50 hover:bg-sage-900 disabled:opacity-60"
+                  key={product.id}
+                  onClick={() => setSelectedProductId(product.id)}
+                  className={`w-full text-left rounded-xl border px-3 py-3 ${
+                    selectedProductId === product.id
+                      ? "border-sage-500 bg-sage-50 dark:bg-slate-800"
+                      : "border-sage-100 dark:border-slate-800 hover:bg-sage-50 dark:hover:bg-slate-800"
+                  }`}
                 >
-                  <Upload className="w-4 h-4" />
-                  {uploadingHeroImage ? "Yükleniyor..." : "Arka Planı Yükle"}
+                  <p className="font-medium text-sage-800 dark:text-cream-50 truncate">{product.name || "Yeni Ürün"}</p>
+                  <p className="text-xs text-sage-500 dark:text-sage-300 mt-1">{product.price || 0} ₺</p>
                 </button>
-                {heroPendingFile ? (
-                  <span className="text-xs text-sage-500 dark:text-sage-300 truncate max-w-full">
-                    Seçilen dosya: {heroPendingFile.name}
-                  </span>
+              ))}
+            </div>
+          </aside>
+
+          <section className="space-y-6">
+            <div className="rounded-3xl bg-white dark:bg-slate-900 border border-sage-100 dark:border-slate-800 p-5 md:p-7 shadow-lg space-y-4">
+              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+                <h2 className="font-serif text-2xl md:text-3xl text-sage-800 dark:text-cream-50">Seçili Ürün</h2>
+                {selectedProduct ? (
+                  <button
+                    type="button"
+                    onClick={deleteSelectedProduct}
+                    className="inline-flex items-center gap-2 rounded-full border border-rose-200 px-4 py-2 text-sm text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-950/30"
+                  >
+                    <Trash2 className="w-4 h-4" /> Ürünü Sil
+                  </button>
                 ) : null}
               </div>
 
-              <Input
-                label="Görsel URL"
-                helper="URL'i değiştirince aşağıda önizleme anında güncellenir."
-                value={contentDraft.home.heroImage}
-                onChange={(value) => setContentDraft((current) => ({ ...current, home: { ...current.home, heroImage: value } }))}
-              />
+              {selectedProduct ? (
+                <>
+                  <Input
+                    label="Ürün Adı"
+                    value={selectedProduct.name}
+                    onChange={(value) => updateSelectedProduct({ name: value })}
+                  />
+                  <div className="grid md:grid-cols-2 gap-4">
+                    <Input
+                      label="Fiyat (TL)"
+                      type="number"
+                      value={String(selectedProduct.price)}
+                      onChange={(value) => updateSelectedProduct({ price: Number(value) })}
+                    />
+                    <div>
+                      <label className="block text-sm font-medium text-sage-700 dark:text-sage-200 mb-2">Kategori</label>
+                      <select
+                        value={selectedProduct.category}
+                        onChange={(event) => updateSelectedProduct({ category: event.target.value })}
+                        className="w-full rounded-2xl border border-sage-200 dark:border-slate-700 bg-white dark:bg-slate-950 px-4 py-3 text-sage-800 dark:text-cream-50"
+                      >
+                        {categoryOptions.map((option) => (
+                          <option key={option.id} value={option.id}>
+                            {option.label}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-sage-700 dark:text-sage-200 mb-2">Açıklama</label>
+                    <textarea
+                      value={selectedProduct.description}
+                      onChange={(event) => updateSelectedProduct({ description: event.target.value })}
+                      className="w-full min-h-28 rounded-2xl border border-sage-200 dark:border-slate-700 bg-white dark:bg-slate-950 px-4 py-3 text-sage-800 dark:text-cream-50"
+                    />
+                  </div>
+                  <label className="flex items-center gap-2 text-sage-700 dark:text-sage-200">
+                    <input
+                      type="checkbox"
+                      checked={selectedProduct.inStock}
+                      onChange={(event) => updateSelectedProduct({ inStock: event.target.checked })}
+                    />
+                    Ürün stokta
+                  </label>
 
-              <div className="relative w-full aspect-[16/7] rounded-2xl overflow-hidden border border-sage-200 dark:border-slate-700">
-                <Image
-                  src={heroPendingPreviewUrl || contentDraft.home.heroImage || "/placeholder-flower.svg"}
-                  alt="Ana ekran görsel önizleme"
-                  fill
-                  sizes="(max-width: 1024px) 100vw, 900px"
-                  className="object-cover"
-                  unoptimized
+                  <div className="rounded-2xl border border-sage-200 dark:border-slate-700 p-4 bg-sage-50/40 dark:bg-slate-950/60 space-y-3">
+                    <p className="font-medium text-sage-800 dark:text-cream-50">Ürün Görselleri</p>
+                    <div className="flex flex-wrap gap-2">
+                      <label className="inline-flex items-center gap-2 rounded-full border border-sage-200 dark:border-slate-700 px-4 py-2 text-sm cursor-pointer">
+                        <Upload className="w-4 h-4" /> Dosya Seç
+                        <input
+                          type="file"
+                          accept="image/*"
+                          className="hidden"
+                          onChange={(event) => selectPendingProductFile(event.target.files?.[0] ?? null)}
+                        />
+                      </label>
+                      <button
+                        type="button"
+                        onClick={uploadProductImage}
+                        disabled={!pendingProductFile}
+                        className="inline-flex items-center gap-2 rounded-full bg-sage-800 px-4 py-2 text-sm text-cream-50 hover:bg-sage-900 disabled:opacity-60"
+                      >
+                        <Upload className="w-4 h-4" /> Görseli Ekle
+                      </button>
+                    </div>
+                    {pendingProductPreviewUrl ? (
+                      <div className="relative w-24 h-24 rounded-xl overflow-hidden border border-sage-200 dark:border-slate-700">
+                        <Image src={pendingProductPreviewUrl} alt="Yüklenecek görsel" fill sizes="96px" className="object-cover" unoptimized />
+                      </div>
+                    ) : null}
+                    <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+                      {selectedProduct.images.map((image, index) => (
+                        <div key={`${image}-${index}`} className="relative rounded-xl overflow-hidden border border-sage-200 dark:border-slate-700">
+                          <div className="relative h-24">
+                            <Image src={image} alt={`Ürün görseli ${index + 1}`} fill sizes="160px" className="object-cover" unoptimized />
+                          </div>
+                          <button
+                            type="button"
+                            onClick={() =>
+                              updateSelectedProductImages(selectedProduct.images.filter((_, imageIndex) => imageIndex !== index))
+                            }
+                            className="w-full text-xs py-1.5 text-rose-600 bg-white/90 dark:bg-slate-900/90"
+                          >
+                            Kaldır
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                </>
+              ) : (
+                <p className="text-sage-600 dark:text-sage-300">Soldan bir ürün seçin veya yeni ürün ekleyin.</p>
+              )}
+            </div>
+
+            <div className="rounded-3xl bg-white dark:bg-slate-900 border border-sage-100 dark:border-slate-800 p-5 md:p-7 shadow-lg space-y-4">
+              <h2 className="font-serif text-2xl md:text-3xl text-sage-800 dark:text-cream-50">Kategoriler</h2>
+              <p className="text-sm text-sage-500 dark:text-sage-300">
+                Buraya yazdığınız kategori isimleri hem katalogda hem ana sayfada otomatik kullanılır.
+              </p>
+              <div className="space-y-2">
+                {categoryLabels.map((label, index) => (
+                  <div key={`${index}-${label}`} className="flex gap-2">
+                    <input
+                      value={label}
+                      onChange={(event) => updateCategoryLabel(index, event.target.value)}
+                      className="w-full rounded-2xl border border-sage-200 dark:border-slate-700 bg-white dark:bg-slate-950 px-4 py-3 text-sage-800 dark:text-cream-50"
+                      placeholder="Kategori adı"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => removeCategory(index)}
+                      className="inline-flex h-12 w-12 items-center justify-center rounded-xl border border-rose-200 text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-950/30"
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </button>
+                  </div>
+                ))}
+              </div>
+              <button
+                type="button"
+                onClick={addCategory}
+                className="inline-flex items-center gap-2 rounded-full border border-sage-200 dark:border-slate-700 px-4 py-2 text-sage-700 dark:text-sage-200"
+              >
+                <Plus className="w-4 h-4" /> Kategori Ekle
+              </button>
+            </div>
+
+            <div className="rounded-3xl bg-white dark:bg-slate-900 border border-sage-100 dark:border-slate-800 p-5 md:p-7 shadow-lg space-y-4">
+              <h2 className="font-serif text-2xl md:text-3xl text-sage-800 dark:text-cream-50">Ana Sayfa İçeriği</h2>
+              <div className="grid md:grid-cols-2 gap-4">
+                <Input
+                  label="Marka Adı"
+                  value={contentDraft.brand.name}
+                  onChange={(value) => {
+                    setContentDraft((current) => ({ ...current, brand: { ...current.brand, name: value } }));
+                    markDirty();
+                  }}
+                />
+                <Input
+                  label="Marka Sloganı"
+                  value={contentDraft.brand.tagline}
+                  onChange={(value) => {
+                    setContentDraft((current) => ({ ...current, brand: { ...current.brand, tagline: value } }));
+                    markDirty();
+                  }}
+                />
+                <Input
+                  label="Ana Başlık"
+                  value={contentDraft.home.heroTitle}
+                  onChange={(value) => {
+                    setContentDraft((current) => ({ ...current, home: { ...current.home, heroTitle: value } }));
+                    markDirty();
+                  }}
+                />
+                <Input
+                  label="Ana Açıklama"
+                  value={contentDraft.home.heroSubtitle}
+                  onChange={(value) => {
+                    setContentDraft((current) => ({ ...current, home: { ...current.home, heroSubtitle: value } }));
+                    markDirty();
+                  }}
+                />
+                <Input
+                  label="Öne Çıkanlar Başlığı"
+                  value={contentDraft.home.featuredTitle}
+                  onChange={(value) => {
+                    setContentDraft((current) => ({ ...current, home: { ...current.home, featuredTitle: value } }));
+                    markDirty();
+                  }}
+                />
+                <Input
+                  label="Öne Çıkanlar Alt Metni"
+                  value={contentDraft.home.featuredSubtitle}
+                  onChange={(value) => {
+                    setContentDraft((current) => ({ ...current, home: { ...current.home, featuredSubtitle: value } }));
+                    markDirty();
+                  }}
+                />
+                <Input
+                  label="Instagram Kullanıcı Adı"
+                  value={contentDraft.contact.instagram}
+                  onChange={(value) => {
+                    setContentDraft((current) => ({ ...current, contact: { ...current.contact, instagram: value } }));
+                    markDirty();
+                  }}
+                />
+                <Input
+                  label="E-Posta"
+                  value={contentDraft.contact.email}
+                  onChange={(value) => {
+                    setContentDraft((current) => ({ ...current, contact: { ...current.contact, email: value } }));
+                    markDirty();
+                  }}
                 />
               </div>
 
-              <div className="flex flex-wrap gap-2">
-                <button
-                  type="button"
-                  onClick={() =>
-                    setContentDraft((current) => ({
-                      ...current,
-                      home: { ...current.home, heroImage: initialHomeHeroImage },
-                    }))
-                  }
-                  className="inline-flex items-center gap-2 rounded-full border border-sage-300 dark:border-slate-600 px-4 py-2 text-sm text-sage-700 dark:text-sage-200 hover:bg-sage-100 dark:hover:bg-slate-800"
-                >
-                  Eski Haline Çevir
-                </button>
-              </div>
-            </div>
-
-            <div className="grid md:grid-cols-3 gap-4">
-              {contentDraft.about.paragraphs.map((paragraph, index) => (
-                <div key={index}>
-                  <label className="block text-sm font-medium text-sage-700 dark:text-sage-200 mb-2">Hakkımızda Paragraf {index + 1}</label>
-                  <textarea
-                    value={paragraph}
-                    onChange={(event) =>
-                      setContentDraft((current) => {
-                        const nextParagraphs = [...current.about.paragraphs];
-                        nextParagraphs[index] = event.target.value;
-                        return { ...current, about: { ...current.about, paragraphs: nextParagraphs } };
-                      })
-                    }
-                    className="w-full min-h-40 rounded-2xl border border-sage-200 dark:border-slate-700 bg-white dark:bg-slate-950 px-4 py-3 text-sage-800 dark:text-cream-50 outline-none focus:border-sage-500"
+              <div className="rounded-2xl border border-sage-200 dark:border-slate-700 p-4 bg-sage-50/40 dark:bg-slate-950/60 space-y-3">
+                <p className="font-medium text-sage-800 dark:text-cream-50">Ana Sayfa Arka Plan Görseli</p>
+                <div className="flex flex-wrap gap-2">
+                  <label className="inline-flex items-center gap-2 rounded-full border border-sage-200 dark:border-slate-700 px-4 py-2 text-sm cursor-pointer">
+                    <Upload className="w-4 h-4" /> Dosya Seç
+                    <input
+                      type="file"
+                      accept="image/*"
+                      className="hidden"
+                      onChange={(event) => selectPendingHeroFile(event.target.files?.[0] ?? null)}
+                    />
+                  </label>
+                  <button
+                    type="button"
+                    onClick={uploadHeroImage}
+                    disabled={!pendingHeroFile}
+                    className="inline-flex items-center gap-2 rounded-full bg-sage-800 px-4 py-2 text-sm text-cream-50 hover:bg-sage-900 disabled:opacity-60"
+                  >
+                    <Upload className="w-4 h-4" /> Arka Planı Yükle
+                  </button>
+                </div>
+                <div className="relative w-full aspect-[16/7] rounded-xl overflow-hidden border border-sage-200 dark:border-slate-700">
+                  <Image
+                    src={pendingHeroPreviewUrl || contentDraft.home.heroImage || "/placeholder-flower.svg"}
+                    alt="Ana ekran önizleme"
+                    fill
+                    sizes="(max-width: 1024px) 100vw, 900px"
+                    className="object-cover"
+                    unoptimized
                   />
                 </div>
-              ))}
+              </div>
             </div>
-
-            <button onClick={saveContent} disabled={saving} className="inline-flex items-center gap-2 rounded-full bg-rose-500 px-5 py-3 text-white font-medium hover:bg-rose-600 disabled:opacity-70">
-              <Save className="w-4 h-4" /> {saving ? "Kaydediliyor..." : "Metinleri Kaydet"}
-            </button>
-          </div>
-        </section>
+          </section>
+        </div>
       </div>
+
+      <div className="fixed bottom-0 left-0 right-0 md:hidden p-3 bg-white/95 dark:bg-slate-950/95 border-t border-sage-200 dark:border-slate-800 z-40">
+        <button
+          onClick={saveAllChanges}
+          disabled={saving}
+          className="w-full inline-flex justify-center items-center gap-2 rounded-full bg-rose-500 px-5 py-3 text-white font-semibold hover:bg-rose-600 disabled:opacity-70"
+        >
+          <Save className="w-4 h-4" /> {saving ? "Kaydediliyor..." : "Tüm Değişiklikleri Kaydet"}
+        </button>
       </div>
     </div>
   );
@@ -774,13 +758,11 @@ export default function AdminDashboard({
 
 function Input({
   label,
-  helper,
   value,
   onChange,
   type = "text",
 }: {
   label: string;
-  helper?: string;
   value: string;
   onChange: (value: string) => void;
   type?: string;
@@ -795,7 +777,6 @@ function Input({
         autoComplete="off"
         className="w-full rounded-2xl border border-sage-200 dark:border-slate-700 bg-white dark:bg-slate-950 px-4 py-3 text-sage-800 dark:text-cream-50 outline-none focus:border-sage-500"
       />
-      {helper ? <p className="text-xs text-sage-500 dark:text-sage-300 mt-1">{helper}</p> : null}
     </div>
   );
 }

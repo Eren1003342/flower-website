@@ -6,7 +6,7 @@ import { validateCategoryOptionsInput, validateSiteContentInput } from "@/lib/va
 
 export async function GET() {
   if (!(await isAdminAuthenticated())) {
-    return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
+    return NextResponse.json({ message: "Oturum süresi doldu. Lütfen tekrar giriş yapın." }, { status: 401 });
   }
 
   try {
@@ -18,7 +18,7 @@ export async function GET() {
 
 export async function POST(request: Request) {
   if (!(await isAdminAuthenticated())) {
-    return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
+    return NextResponse.json({ message: "Oturum süresi doldu. Lütfen tekrar giriş yapın." }, { status: 401 });
   }
 
   try {
