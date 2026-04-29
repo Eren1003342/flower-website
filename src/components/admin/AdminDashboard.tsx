@@ -61,6 +61,10 @@ function getInitialCategoryLabels(content: SiteContent) {
   return Array.from(new Set(combined));
 }
 
+function getInitialShowcaseCategoryIds(content: SiteContent) {
+  return content.home.showcaseCategories.map((item) => item.id).filter(Boolean);
+}
+
 function statusClasses(tone: SaveTone) {
   if (tone === "success") {
     return "border-emerald-200 bg-emerald-50 text-emerald-700 dark:border-emerald-900/70 dark:bg-emerald-950/40 dark:text-emerald-300";
@@ -82,6 +86,9 @@ export default function AdminDashboard({
   const [selectedProductId, setSelectedProductId] = useState(initialProducts[0]?.id ?? "");
   const [contentDraft, setContentDraft] = useState<SiteContent>(initialContent);
   const [categoryLabels, setCategoryLabels] = useState<string[]>(getInitialCategoryLabels(initialContent));
+  const [showcaseCategoryIds, setShowcaseCategoryIds] = useState<string[]>(
+    getInitialShowcaseCategoryIds(initialContent),
+  );
 
   const [status, setStatus] = useState("Hazır.");
   const [statusTone, setStatusTone] = useState<SaveTone>("idle");
@@ -108,6 +115,15 @@ export default function AdminDashboard({
       })
       .filter((item): item is { id: string; label: string } => Boolean(item));
   }, [categoryLabels]);
+
+  const validShowcaseCategoryIds = useMemo(() => {
+    const allowed = new Set(categoryOptions.map((item) => item.id));
+    const filtered = showcaseCategoryIds.filter((id) => allowed.has(id));
+    if (filtered.length > 0) {
+      return filtered;
+    }
+    return categoryOptions.slice(0, Math.min(4, categoryOptions.length)).map((item) => item.id);
+  }, [showcaseCategoryIds, categoryOptions]);
 
   function markDirty(successMessage = "Değişiklik yapıldı. Kaydetmeyi unutmayın.") {
     setHasChanges(true);
@@ -299,6 +315,19 @@ export default function AdminDashboard({
     markDirty();
   }
 
+  function toggleShowcaseCategory(categoryId: string, checked: boolean) {
+    setShowcaseCategoryIds((current) => {
+      if (checked) {
+        if (current.includes(categoryId)) {
+          return current;
+        }
+        return [...current, categoryId];
+      }
+      return current.filter((id) => id !== categoryId);
+    });
+    markDirty("Ana sayfa kategori görünümü güncellendi.");
+  }
+
   function buildPreparedProducts() {
     if (productsDraft.length === 0) {
       return { ok: false as const, message: "En az bir ürün ekleyin." };
@@ -357,12 +386,20 @@ export default function AdminDashboard({
       return;
     }
 
+    const showcaseOptions = categoryOptions.filter((item) => validShowcaseCategoryIds.includes(item.id));
+    if (showcaseOptions.length === 0) {
+      setStatus("Ana sayfada gösterilecek en az 1 kategori seçin.");
+      setStatusTone("error");
+      setSaving(false);
+      return;
+    }
+
     const nextContent: SiteContent = {
       ...contentDraft,
       home: {
         ...contentDraft.home,
         catalogFilters: categoryOptions,
-        showcaseCategories: categoryOptions,
+        showcaseCategories: showcaseOptions,
       },
     };
 
@@ -607,11 +644,11 @@ export default function AdminDashboard({
             <div className="rounded-3xl bg-white dark:bg-slate-900 border border-sage-100 dark:border-slate-800 p-5 md:p-7 shadow-lg space-y-4">
               <h2 className="font-serif text-2xl md:text-3xl text-sage-800 dark:text-cream-50">Kategoriler</h2>
               <p className="text-sm text-sage-500 dark:text-sage-300">
-                Buraya yazdığınız kategori isimleri hem katalogda hem ana sayfada otomatik kullanılır.
+                Buraya kategori isimlerini yazın. Katalogda hepsi çıkar, ana sayfa için aşağıdan seçebilirsiniz.
               </p>
               <div className="space-y-2">
                 {categoryLabels.map((label, index) => (
-                  <div key={`${index}-${label}`} className="flex gap-2">
+                  <div key={`category-row-${index}`} className="flex gap-2">
                     <input
                       value={label}
                       onChange={(event) => updateCategoryLabel(index, event.target.value)}
@@ -635,6 +672,25 @@ export default function AdminDashboard({
               >
                 <Plus className="w-4 h-4" /> Kategori Ekle
               </button>
+
+              <div className="rounded-2xl border border-sage-200 dark:border-slate-700 p-4 bg-sage-50/40 dark:bg-slate-950/60 space-y-3">
+                <p className="font-medium text-sage-800 dark:text-cream-50">Ana sayfada gösterilecek kategoriler</p>
+                <div className="grid sm:grid-cols-2 gap-2">
+                  {categoryOptions.map((option) => (
+                    <label
+                      key={`showcase-toggle-${option.id}`}
+                      className="flex items-center gap-2 rounded-xl border border-sage-200 dark:border-slate-700 bg-white dark:bg-slate-900 px-3 py-2 text-sm text-sage-700 dark:text-sage-200"
+                    >
+                      <input
+                        type="checkbox"
+                        checked={validShowcaseCategoryIds.includes(option.id)}
+                        onChange={(event) => toggleShowcaseCategory(option.id, event.target.checked)}
+                      />
+                      {option.label}
+                    </label>
+                  ))}
+                </div>
+              </div>
             </div>
 
             <div className="rounded-3xl bg-white dark:bg-slate-900 border border-sage-100 dark:border-slate-800 p-5 md:p-7 shadow-lg space-y-4">
