@@ -11,10 +11,29 @@ function InstagramLogo({ className }: { className?: string }) {
   );
 }
 
+function WhatsAppLogo({ className }: { className?: string }) {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" className={className} aria-hidden="true">
+      <path
+        d="M12 3.75C7.44 3.75 3.75 7.44 3.75 12c0 1.57.44 3.04 1.2 4.3L3.75 20.25l4.05-1.18A8.2 8.2 0 0 0 12 20.25c4.56 0 8.25-3.69 8.25-8.25S16.56 3.75 12 3.75z"
+        stroke="currentColor"
+        strokeWidth="1.8"
+        strokeLinejoin="round"
+      />
+      <path
+        d="M9.2 8.9c.16-.36.31-.37.58-.37h.43c.13 0 .3.05.37.2.12.28.46 1.12.5 1.2.05.08.08.18.01.29-.07.1-.1.16-.2.25-.1.09-.2.2-.28.27-.1.1-.2.2-.08.4.13.2.57.94 1.22 1.52.84.75 1.55.98 1.77 1.09.22.1.35.08.48-.05.13-.12.56-.65.72-.87.16-.22.31-.19.53-.11.22.08 1.36.64 1.6.76.24.12.39.18.45.28.06.1.06.6-.14 1.18-.2.57-1.16 1.1-1.6 1.17-.42.07-.96.1-1.55-.1-.36-.12-.82-.27-1.41-.53-2.46-1.06-4.06-3.61-4.18-3.78-.11-.18-1-1.34-1-2.55 0-1.2.63-1.79.85-2.04z"
+        fill="currentColor"
+      />
+    </svg>
+  );
+}
+
 export default async function ContactPage() {
   const content = await getSiteContent();
   const instagramHandle = content.contact.instagram.replace(/^@/, "");
   const instagramUrl = `https://instagram.com/${instagramHandle}`;
+  const whatsappDisplay = "05013502209";
+  const whatsappUrl = "https://wa.me/905013502209";
   const mapsUrl = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(content.contact.address)}`;
 
   return (
@@ -72,6 +91,25 @@ export default async function ContactPage() {
 
             <li className="group">
               <a
+                href={whatsappUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex items-center gap-6 rounded-2xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500/70"
+              >
+                <div className="w-14 h-14 bg-emerald-100 dark:bg-emerald-950/50 text-emerald-600 dark:text-emerald-400 rounded-2xl flex items-center justify-center group-hover:bg-emerald-600 group-hover:text-cream-50 transition-colors">
+                  <WhatsAppLogo className="w-6 h-6" />
+                </div>
+                <div>
+                  <p className="font-semibold text-lg mb-1 text-slate-800 dark:text-cream-50">WhatsApp</p>
+                  <p className="text-emerald-600 dark:text-emerald-400 font-semibold group-hover:text-emerald-700 dark:group-hover:text-emerald-300 transition-colors">
+                    {whatsappDisplay}
+                  </p>
+                </div>
+              </a>
+            </li>
+
+            <li className="group">
+              <a
                 href={`mailto:${content.contact.email}`}
                 className="flex items-center gap-6 rounded-2xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sage-500/70"
               >
@@ -109,6 +147,14 @@ export default async function ContactPage() {
         </div>
         <div className="flex flex-col sm:flex-row sm:flex-wrap gap-2 w-full md:w-auto">
           <a
+            href={whatsappUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="inline-flex items-center justify-center rounded-full bg-emerald-500 text-white px-4 py-2 text-sm font-semibold hover:bg-emerald-600 transition-all w-full sm:w-auto"
+          >
+            WhatsApp&apos;tan Yaz
+          </a>
+          <a
             href={instagramUrl}
             target="_blank"
             rel="noopener noreferrer"
@@ -136,7 +182,7 @@ export default async function ContactPage() {
         </div>
         <div className="rounded-2xl bg-slate-900/90 border border-slate-700 p-4 text-slate-200">
           <p className="text-xs uppercase tracking-[0.15em] text-slate-400">Satış Kanalı</p>
-          <p className="font-semibold mt-1">Instagram üzerinden sipariş</p>
+          <p className="font-semibold mt-1">Instagram ve WhatsApp üzerinden sipariş</p>
         </div>
       </div>
     </div>
