@@ -29,7 +29,10 @@ export default function Navbar({ brandName = "Eleanor Çiçek" }: { brandName?: 
         </div>
         <div className="flex items-center gap-2 sm:gap-3 z-10">
           <ThemeToggle />
-          <Link href="/katalog" className="bg-sage-500 text-white p-2 rounded-full hover:bg-sage-800 transition-colors">
+          <Link
+            href="/katalog"
+            className="bg-sage-500 text-white p-2.5 sm:p-2 rounded-full hover:bg-sage-800 transition-colors"
+          >
             <ShoppingBag className="w-5 h-5" />
           </Link>
           <Link
@@ -43,7 +46,7 @@ export default function Navbar({ brandName = "Eleanor Çiçek" }: { brandName?: 
             type="button"
             onClick={() => setMobileMenuOpen((prev) => !prev)}
             aria-label="Mobil menüyü aç"
-            className="lg:hidden bg-white/70 dark:bg-slate-900/80 border border-sage-200 dark:border-slate-700 text-sage-800 dark:text-cream-50 p-2 rounded-full"
+            className="lg:hidden bg-white/70 dark:bg-slate-900/80 border border-sage-200 dark:border-slate-700 text-sage-800 dark:text-cream-50 p-2.5 sm:p-2 rounded-full"
           >
             {mobileMenuOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
           </button>

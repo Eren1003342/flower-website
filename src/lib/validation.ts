@@ -148,7 +148,21 @@ export function validateProductInput(input: unknown):
     return { ok: false, message: "En az bir geçerli görsel URL'i gerekli." };
   }
 
-  const inStock = typeof record.inStock === "boolean" ? record.inStock : Boolean(record.inStock);
+  let inStock = true;
+  if (typeof record.inStock === "boolean") {
+    inStock = record.inStock;
+  } else if (typeof record.inStock === "string") {
+    const normalized = record.inStock.trim().toLowerCase();
+    if (normalized === "true") {
+      inStock = true;
+    } else if (normalized === "false") {
+      inStock = false;
+    } else {
+      return { ok: false, message: "Stok bilgisi geçersiz." };
+    }
+  } else if (typeof record.inStock === "number") {
+    inStock = record.inStock > 0;
+  }
 
   return {
     ok: true,

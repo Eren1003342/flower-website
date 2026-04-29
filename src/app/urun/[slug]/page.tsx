@@ -78,6 +78,8 @@ export default async function ProductDetailPage({ params }: Props) {
 
   const instagramHandle = content.contact.instagram.replace(/^@/, "");
   const instagramUrl = `https://instagram.com/${instagramHandle}`;
+  const whatsappDisplay = "+90 501 350 22 09";
+  const whatsappUrl = "https://wa.me/905013502209";
 
   return (
     <div className="relative w-full overflow-hidden bg-cream-50 dark:bg-slate-950 transition-colors duration-700 ease-in-out">
@@ -180,6 +182,42 @@ export default async function ProductDetailPage({ params }: Props) {
                   <line x1="17.5" x2="17.51" y1="6.5" y2="6.5"/>
                 </svg>
                 {product.inStock ? "Instagram'dan Sipariş Ver" : "Stokta Yok"}
+              </a>
+              <a
+                href={whatsappUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className={`flex items-center justify-between w-full px-6 py-4 rounded-2xl transition-all duration-500 shadow-md border ${
+                  product.inStock
+                    ? "bg-emerald-50 dark:bg-emerald-950/30 border-emerald-200 dark:border-emerald-800 hover:-translate-y-0.5 hover:shadow-lg"
+                    : "bg-sage-100 dark:bg-slate-800 border-sage-200 dark:border-slate-700 text-sage-500 dark:text-slate-500 cursor-not-allowed pointer-events-none"
+                }`}
+              >
+                <div className="flex items-center gap-3">
+                  <span className="inline-flex h-10 w-10 items-center justify-center rounded-full bg-emerald-500 text-white">
+                    <svg viewBox="0 0 24 24" className="h-5 w-5" fill="none" aria-hidden="true">
+                      <path
+                        d="M12 3.75C7.44 3.75 3.75 7.44 3.75 12c0 1.57.44 3.04 1.2 4.3L3.75 20.25l4.05-1.18A8.2 8.2 0 0 0 12 20.25c4.56 0 8.25-3.69 8.25-8.25S16.56 3.75 12 3.75z"
+                        stroke="currentColor"
+                        strokeWidth="1.7"
+                        strokeLinejoin="round"
+                      />
+                      <path
+                        d="M9.2 8.9c.16-.36.31-.37.58-.37h.43c.13 0 .3.05.37.2.12.28.46 1.12.5 1.2.05.08.08.18.01.29-.07.1-.1.16-.2.25-.1.09-.2.2-.28.27-.1.1-.2.2-.08.4.13.2.57.94 1.22 1.52.84.75 1.55.98 1.77 1.09.22.1.35.08.48-.05.13-.12.56-.65.72-.87.16-.22.31-.19.53-.11.22.08 1.36.64 1.6.76.24.12.39.18.45.28.06.1.06.6-.14 1.18-.2.57-1.16 1.1-1.6 1.17-.42.07-.96.1-1.55-.1-.36-.12-.82-.27-1.41-.53-2.46-1.06-4.06-3.61-4.18-3.78-.11-.18-1-1.34-1-2.55 0-1.2.63-1.79.85-2.04z"
+                        fill="currentColor"
+                      />
+                    </svg>
+                  </span>
+                  <div className="text-left">
+                    <p className="text-sm font-semibold text-emerald-700 dark:text-emerald-300">
+                      WhatsApp Sipariş Hattı
+                    </p>
+                    <p className="text-base font-bold text-emerald-800 dark:text-emerald-200">{whatsappDisplay}</p>
+                  </div>
+                </div>
+                <span className="text-xs font-semibold uppercase tracking-[0.12em] text-emerald-700 dark:text-emerald-300">
+                  Mesaj Gönder
+                </span>
               </a>
             </div>
           </div>

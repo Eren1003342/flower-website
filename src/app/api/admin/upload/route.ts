@@ -61,7 +61,7 @@ function detectMimeFromMagic(buffer: Buffer): keyof typeof ALLOWED_MIME_TO_EXT |
 
 export async function POST(request: Request) {
   if (!(await isAdminAuthenticated())) {
-    return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
+    return NextResponse.json({ message: "Oturum süresi doldu. Lütfen tekrar giriş yapın." }, { status: 401 });
   }
 
   const formData = await request.formData();

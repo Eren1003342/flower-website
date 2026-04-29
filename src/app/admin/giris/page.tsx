@@ -1,8 +1,14 @@
 import LoginForm from "@/components/admin/LoginForm";
 import Link from "next/link";
 import { Heart, Sparkles } from "lucide-react";
+import { redirect } from "next/navigation";
+import { isAdminAuthenticated } from "@/lib/admin-auth";
 
-export default function AdminLoginPage() {
+export default async function AdminLoginPage() {
+  if (await isAdminAuthenticated()) {
+    redirect("/admin");
+  }
+
   return (
     <div className="paper-stage min-h-[calc(100vh-8rem)] flex items-center justify-center px-4 py-16">
       <Heart className="absolute left-[6%] top-[14%] hidden md:block w-10 h-10 text-rose-200/55 animate-float-slow" />
