@@ -493,7 +493,7 @@ export default function AdminDashboard({
           <button
             onClick={saveAllChanges}
             disabled={saving}
-            className="hidden md:inline-flex self-start items-center gap-2 rounded-full bg-rose-500 px-5 py-3 text-white font-semibold hover:bg-rose-600 disabled:opacity-70"
+            className="inline-flex self-start items-center gap-2 rounded-full bg-rose-500 px-5 py-3 text-white font-semibold hover:bg-rose-600 disabled:opacity-70"
           >
             <Save className="w-4 h-4" /> {saving ? "Kaydediliyor..." : "Tüm Değişiklikleri Kaydet"}
           </button>
@@ -799,7 +799,7 @@ export default function AdminDashboard({
         </div>
       </div>
 
-      <div className="fixed bottom-0 left-0 right-0 md:hidden p-3 bg-white/95 dark:bg-slate-950/95 border-t border-sage-200 dark:border-slate-800 z-40">
+      <div className="fixed bottom-0 left-0 right-0 md:hidden p-3 bg-white/95 dark:bg-slate-950/95 border-t border-sage-200 dark:border-slate-800 z-[80]">
         <button
           onClick={saveAllChanges}
           disabled={saving}
