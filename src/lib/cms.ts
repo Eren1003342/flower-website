@@ -250,9 +250,28 @@ export async function saveProducts(products: Product[]) {
   if (isSupabaseConfigured()) {
     const client = getSupabaseAdminClient();
     const rows = products.map(mapProductToRow);
-    const { error } = await client.from("products").upsert(rows, { onConflict: "id" });
-    if (error) {
-      throw new Error(`Ürünler Supabase'e yazılamadı: ${error.message}`);
+    const { data: existingRows, error: existingError } = await client.from("products").select("id");
+    if (existingError) {
+      throw new Error(`Mevcut ürünler alınamadı: ${existingError.message}`);
+    }
+
+    const incomingIds = new Set(rows.map((row) => row.id));
+    const staleIds = ((existingRows as Array<{ id: string }> | null) ?? [])
+      .map((row) => row.id)
+      .filter((id) => !incomingIds.has(id));
+
+    if (staleIds.length > 0) {
+      const { error: deleteError } = await client.from("products").delete().in("id", staleIds);
+      if (deleteError) {
+        throw new Error(`Silinen ürünler temizlenemedi: ${deleteError.message}`);
+      }
+    }
+
+    if (rows.length > 0) {
+      const { error } = await client.from("products").upsert(rows, { onConflict: "id" });
+      if (error) {
+        throw new Error(`Ürünler Supabase'e yazılamadı: ${error.message}`);
+      }
     }
     return products;
   }
