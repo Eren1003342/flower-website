@@ -207,28 +207,14 @@ export default async function ProductDetailPage({ params }: Props) {
                 href={whatsappUrl}
                 target="_blank"
                 rel="noopener noreferrer"
-                className={`flex items-center justify-between w-full px-6 py-4 rounded-2xl transition-all duration-500 shadow-md border ${
+                className={`flex items-center justify-center gap-3 w-full px-8 py-5 rounded-2xl font-medium tracking-wide text-lg transition-all duration-700 ease-in-out shadow-md ${
                   product.inStock
-                    ? "bg-emerald-50 dark:bg-emerald-950/30 border-emerald-200 dark:border-emerald-800 hover:-translate-y-0.5 hover:shadow-lg"
+                    ? "bg-gradient-to-r from-emerald-500 via-teal-500 to-green-500 text-white hover:opacity-90 hover:-translate-y-1 hover:shadow-xl"
                     : "bg-sage-100 dark:bg-slate-800 border-sage-200 dark:border-slate-700 text-sage-500 dark:text-slate-500 cursor-not-allowed pointer-events-none"
                 }`}
               >
-                <div className="flex items-center gap-3">
-                  <span className="inline-flex h-10 w-10 items-center justify-center rounded-full bg-emerald-500 text-white">
-                    <WhatsAppLogo className="h-5 w-5" />
-                  </span>
-                  <div className="text-left">
-                    <p className="text-sm font-semibold text-emerald-700 dark:text-emerald-300">
-                      WhatsApp Sipariş Hattı
-                    </p>
-                    <p className="text-sm font-medium text-emerald-800/90 dark:text-emerald-200/90">
-                      Hızlı sipariş için WhatsApp&apos;tan yazın
-                    </p>
-                  </div>
-                </div>
-                <span className="text-xs font-semibold uppercase tracking-[0.12em] text-emerald-700 dark:text-emerald-300">
-                  Mesaj Gönder
-                </span>
+                <WhatsAppLogo className="w-6 h-6" />
+                {product.inStock ? "WhatsApp'tan Sipariş Ver" : "Stokta Yok"}
               </a>
             </div>
           </div>
