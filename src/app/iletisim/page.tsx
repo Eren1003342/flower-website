@@ -32,7 +32,7 @@ export default async function ContactPage() {
   const content = await getSiteContent();
   const instagramHandle = content.contact.instagram.replace(/^@/, "");
   const instagramUrl = `https://instagram.com/${instagramHandle}`;
-  const whatsappDisplay = "05013502209";
+  const whatsappDisplay = "+90 501 350 22 09";
   const whatsappUrl = "https://wa.me/905013502209";
   const mapsUrl = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(content.contact.address)}`;
 
@@ -43,6 +43,9 @@ export default async function ContactPage() {
           <div className="paper-surface px-6 md:px-10 py-10 md:py-12 text-center">
             <h1 className="text-5xl font-bold text-cream-50 mb-4" style={{ fontFamily: "var(--font-brand)" }}>{content.contact.title}</h1>
             <p className="text-cream-50/90 max-w-2xl mx-auto text-lg font-medium">{content.contact.subtitle}</p>
+            <p className="mt-4 inline-flex items-center justify-center rounded-full border border-amber-200/40 bg-amber-100/15 px-4 py-2 text-sm font-semibold text-amber-100">
+              Sipariş ve teslimat yalnızca Bursa içindedir.
+            </p>
           </div>
         </div>
       </section>
@@ -183,6 +186,10 @@ export default async function ContactPage() {
         <div className="rounded-2xl bg-slate-900/90 border border-slate-700 p-4 text-slate-200">
           <p className="text-xs uppercase tracking-[0.15em] text-slate-400">Satış Kanalı</p>
           <p className="font-semibold mt-1">Instagram ve WhatsApp üzerinden sipariş</p>
+        </div>
+        <div className="rounded-2xl bg-slate-900/90 border border-slate-700 p-4 text-slate-200 md:col-span-3">
+          <p className="text-xs uppercase tracking-[0.15em] text-slate-400">Teslimat Bölgesi</p>
+          <p className="font-semibold mt-1">Yalnızca Bursa içi sipariş ve teslimat hizmeti veriyoruz.</p>
         </div>
       </div>
     </div>

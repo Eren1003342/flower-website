@@ -1,6 +1,6 @@
 import Image from "next/image";
 import { notFound } from "next/navigation";
-import { CheckCircle2, ChevronRight, Truck } from "lucide-react";
+import { CheckCircle2, ChevronRight, MapPin, Truck } from "lucide-react";
 import Link from "next/link";
 import { getProductBySlug, getSiteContent } from "@/lib/cms";
 
@@ -68,6 +68,23 @@ function NeonShape({
   );
 }
 
+function WhatsAppLogo({ className }: { className?: string }) {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" className={className} aria-hidden="true">
+      <path
+        d="M12 3.75C7.44 3.75 3.75 7.44 3.75 12c0 1.57.44 3.04 1.2 4.3L3.75 20.25l4.05-1.18A8.2 8.2 0 0 0 12 20.25c4.56 0 8.25-3.69 8.25-8.25S16.56 3.75 12 3.75z"
+        stroke="currentColor"
+        strokeWidth="1.8"
+        strokeLinejoin="round"
+      />
+      <path
+        d="M9.2 8.9c.16-.36.31-.37.58-.37h.43c.13 0 .3.05.37.2.12.28.46 1.12.5 1.2.05.08.08.18.01.29-.07.1-.1.16-.2.25-.1.09-.2.2-.28.27-.1.1-.2.2-.08.4.13.2.57.94 1.22 1.52.84.75 1.55.98 1.77 1.09.22.1.35.08.48-.05.13-.12.56-.65.72-.87.16-.22.31-.19.53-.11.22.08 1.36.64 1.6.76.24.12.39.18.45.28.06.1.06.6-.14 1.18-.2.57-1.16 1.1-1.6 1.17-.42.07-.96.1-1.55-.1-.36-.12-.82-.27-1.41-.53-2.46-1.06-4.06-3.61-4.18-3.78-.11-.18-1-1.34-1-2.55 0-1.2.63-1.79.85-2.04z"
+        fill="currentColor"
+      />
+    </svg>
+  );
+}
+
 export default async function ProductDetailPage({ params }: Props) {
   const resolvedParams = await params;
   const [product, content] = await Promise.all([getProductBySlug(resolvedParams.slug), getSiteContent()]);
@@ -78,7 +95,6 @@ export default async function ProductDetailPage({ params }: Props) {
 
   const instagramHandle = content.contact.instagram.replace(/^@/, "");
   const instagramUrl = `https://instagram.com/${instagramHandle}`;
-  const whatsappDisplay = "+90 501 350 22 09";
   const whatsappUrl = "https://wa.me/905013502209";
 
   return (
@@ -163,6 +179,10 @@ export default async function ProductDetailPage({ params }: Props) {
                 <Truck className="w-6 h-6 text-sage-800 dark:text-cream-50" />
                 <span className="font-medium text-sage-800 dark:text-cream-50">Korunaklı Paketleme ve Özenli Teslimat</span>
               </li>
+              <li className="flex items-center gap-3">
+                <MapPin className="w-6 h-6 text-sage-800 dark:text-cream-50" />
+                <span className="font-medium text-sage-800 dark:text-cream-50">Teslimat yalnızca Bursa içindedir.</span>
+              </li>
             </ul>
 
             <div className="flex flex-col gap-4 w-full lg:w-[400px]">
@@ -195,24 +215,15 @@ export default async function ProductDetailPage({ params }: Props) {
               >
                 <div className="flex items-center gap-3">
                   <span className="inline-flex h-10 w-10 items-center justify-center rounded-full bg-emerald-500 text-white">
-                    <svg viewBox="0 0 24 24" className="h-5 w-5" fill="none" aria-hidden="true">
-                      <path
-                        d="M12 3.75C7.44 3.75 3.75 7.44 3.75 12c0 1.57.44 3.04 1.2 4.3L3.75 20.25l4.05-1.18A8.2 8.2 0 0 0 12 20.25c4.56 0 8.25-3.69 8.25-8.25S16.56 3.75 12 3.75z"
-                        stroke="currentColor"
-                        strokeWidth="1.7"
-                        strokeLinejoin="round"
-                      />
-                      <path
-                        d="M9.2 8.9c.16-.36.31-.37.58-.37h.43c.13 0 .3.05.37.2.12.28.46 1.12.5 1.2.05.08.08.18.01.29-.07.1-.1.16-.2.25-.1.09-.2.2-.28.27-.1.1-.2.2-.08.4.13.2.57.94 1.22 1.52.84.75 1.55.98 1.77 1.09.22.1.35.08.48-.05.13-.12.56-.65.72-.87.16-.22.31-.19.53-.11.22.08 1.36.64 1.6.76.24.12.39.18.45.28.06.1.06.6-.14 1.18-.2.57-1.16 1.1-1.6 1.17-.42.07-.96.1-1.55-.1-.36-.12-.82-.27-1.41-.53-2.46-1.06-4.06-3.61-4.18-3.78-.11-.18-1-1.34-1-2.55 0-1.2.63-1.79.85-2.04z"
-                        fill="currentColor"
-                      />
-                    </svg>
+                    <WhatsAppLogo className="h-5 w-5" />
                   </span>
                   <div className="text-left">
                     <p className="text-sm font-semibold text-emerald-700 dark:text-emerald-300">
                       WhatsApp Sipariş Hattı
                     </p>
-                    <p className="text-base font-bold text-emerald-800 dark:text-emerald-200">{whatsappDisplay}</p>
+                    <p className="text-sm font-medium text-emerald-800/90 dark:text-emerald-200/90">
+                      Hızlı sipariş için WhatsApp&apos;tan yazın
+                    </p>
                   </div>
                 </div>
                 <span className="text-xs font-semibold uppercase tracking-[0.12em] text-emerald-700 dark:text-emerald-300">
