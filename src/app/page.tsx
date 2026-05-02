@@ -84,7 +84,7 @@ export default async function Home() {
                   </Link>
                 </div>
                 <div className="mb-6 inline-flex items-center rounded-full border border-amber-200/40 bg-amber-100/15 px-4 py-2 text-xs sm:text-sm font-semibold text-amber-100">
-                  Sipariş ve teslimat yalnızca Bursa içinde elden yapılır.
+                  Sipariş ve teslimat Türkiye geneline yapılır.
                 </div>
 
                 <MobileHeroCarousel items={mobileHeroItems} />
@@ -240,8 +240,8 @@ export default async function Home() {
                 <div className="rounded-2xl bg-cream-50 dark:bg-slate-900 border border-sage-100 dark:border-slate-800 p-4 flex items-start gap-3">
                   <Truck className="w-5 h-5 text-rose-500 mt-1" />
                   <div>
-                    <p className="font-semibold text-sage-900 dark:text-cream-50">Bursa İçi Elden Teslim</p>
-                    <p className="text-sm text-sage-600 dark:text-slate-300">Siparişler Bursa içinde elden, özenle teslim edilir.</p>
+                    <p className="font-semibold text-sage-900 dark:text-cream-50">Türkiye Geneli Teslimat</p>
+                    <p className="text-sm text-sage-600 dark:text-slate-300">Siparişler Türkiye genelinde özenle teslim edilir.</p>
                   </div>
                 </div>
                 <div className="rounded-2xl bg-cream-50 dark:bg-slate-900 border border-sage-100 dark:border-slate-800 p-4 flex items-start gap-3">

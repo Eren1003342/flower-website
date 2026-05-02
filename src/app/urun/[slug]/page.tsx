@@ -179,7 +179,7 @@ export default async function ProductDetailPage({ params }: Props) {
               </li>
               <li className="flex items-center gap-3">
                 <MapPin className="w-6 h-6 text-sage-800 dark:text-cream-50" />
-                <span className="font-medium text-sage-800 dark:text-cream-50">Teslimat yalnızca Bursa içinde elden yapılır.</span>
+                <span className="font-medium text-sage-800 dark:text-cream-50">Teslimat Türkiye geneline yapılır.</span>
               </li>
             </ul>
 
