@@ -44,7 +44,7 @@ export default async function ContactPage() {
             <h1 className="text-5xl font-bold text-cream-50 mb-4" style={{ fontFamily: "var(--font-brand)" }}>{content.contact.title}</h1>
             <p className="text-cream-50/90 max-w-2xl mx-auto text-lg font-medium">{content.contact.subtitle}</p>
             <p className="mt-4 inline-flex items-center justify-center rounded-full border border-amber-200/40 bg-amber-100/15 px-4 py-2 text-sm font-semibold text-amber-100">
-              Sipariş ve teslimat yalnızca Bursa içindedir.
+              Sipariş ve teslimat yalnızca Bursa içinde elden yapılır.
             </p>
           </div>
         </div>
@@ -189,7 +189,7 @@ export default async function ContactPage() {
         </div>
         <div className="rounded-2xl bg-slate-900/90 border border-slate-700 p-4 text-slate-200 md:col-span-3">
           <p className="text-xs uppercase tracking-[0.15em] text-slate-400">Teslimat Bölgesi</p>
-          <p className="font-semibold mt-1">Yalnızca Bursa içi sipariş ve teslimat hizmeti veriyoruz.</p>
+          <p className="font-semibold mt-1">Yalnızca Bursa içi elden sipariş teslimatı hizmeti veriyoruz.</p>
         </div>
       </div>
     </div>

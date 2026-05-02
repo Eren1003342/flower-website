@@ -1,8 +1,8 @@
-import Image from "next/image";
 import { notFound } from "next/navigation";
 import { CheckCircle2, ChevronRight, MapPin, Truck } from "lucide-react";
 import Link from "next/link";
 import { getProductBySlug, getSiteContent } from "@/lib/cms";
+import ProductImageGallery from "@/components/ProductImageGallery";
 
 interface Props {
   params: Promise<{ slug: string }>;
@@ -121,7 +121,12 @@ export default async function ProductDetailPage({ params }: Props) {
         <div className="max-w-6xl mx-auto px-4">
           <div className="paper-surface px-6 md:px-10 py-8 text-center">
             <p className="text-cream-50/80 text-sm tracking-[0.18em] uppercase">El Yapımı Çiçek Koleksiyonu</p>
-            <h1 className="font-serif text-3xl md:text-4xl text-cream-50 mt-2">Ürün Detayı</h1>
+            <h1
+              className="text-3xl md:text-4xl font-semibold tracking-tight text-cream-50 mt-2 antialiased [text-rendering:geometricPrecision]"
+              style={{ fontFamily: "var(--font-brand)" }}
+            >
+              Ürün Detayı
+            </h1>
           </div>
         </div>
       </section>
@@ -138,15 +143,8 @@ export default async function ProductDetailPage({ params }: Props) {
 
         <div className="grid md:grid-cols-2 gap-10 md:gap-12 lg:gap-24 mb-12 md:mb-24">
           {/* Gallery */}
-          <div className="relative aspect-[4/5] rounded-3xl overflow-hidden bg-white dark:bg-slate-900 shadow-xl dark:shadow-slate-800/20 isolate">
-            <Image
-              src={product.images[0] ?? "/placeholder-flower.svg"}
-              alt={product.name}
-              fill
-              sizes="(max-width: 768px) 100vw, 50vw"
-              className="object-cover"
-              priority
-            />
+          <div className="relative">
+            <ProductImageGallery images={product.images} alt={product.name} />
             {!product.inStock && (
               <div className="absolute top-6 left-6 z-10 bg-white dark:bg-slate-950 px-4 py-2 rounded-full font-bold text-rose-500 shadow-sm">
                 Tükendi
@@ -181,7 +179,7 @@ export default async function ProductDetailPage({ params }: Props) {
               </li>
               <li className="flex items-center gap-3">
                 <MapPin className="w-6 h-6 text-sage-800 dark:text-cream-50" />
-                <span className="font-medium text-sage-800 dark:text-cream-50">Teslimat yalnızca Bursa içindedir.</span>
+                <span className="font-medium text-sage-800 dark:text-cream-50">Teslimat yalnızca Bursa içinde elden yapılır.</span>
               </li>
             </ul>
 

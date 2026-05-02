@@ -95,8 +95,8 @@ export default function AdminDashboard({
   const [hasChanges, setHasChanges] = useState(false);
   const [saving, setSaving] = useState(false);
 
-  const [pendingProductFile, setPendingProductFile] = useState<File | null>(null);
-  const [pendingProductPreviewUrl, setPendingProductPreviewUrl] = useState<string | null>(null);
+  const [pendingProductFiles, setPendingProductFiles] = useState<File[]>([]);
+  const [pendingProductPreviewUrls, setPendingProductPreviewUrls] = useState<string[]>([]);
   const [pendingHeroFile, setPendingHeroFile] = useState<File | null>(null);
   const [pendingHeroPreviewUrl, setPendingHeroPreviewUrl] = useState<string | null>(null);
 
@@ -208,12 +208,14 @@ export default function AdminDashboard({
     );
   }
 
-  function clearPendingProductFile() {
-    if (pendingProductPreviewUrl) {
-      URL.revokeObjectURL(pendingProductPreviewUrl);
-    }
-    setPendingProductFile(null);
-    setPendingProductPreviewUrl(null);
+  function setPendingProductSelection(files: File[]) {
+    pendingProductPreviewUrls.forEach((url) => URL.revokeObjectURL(url));
+    setPendingProductFiles(files);
+    setPendingProductPreviewUrls(files.map((file) => URL.createObjectURL(file)));
+  }
+
+  function clearPendingProductFiles() {
+    setPendingProductSelection([]);
   }
 
   function clearPendingHeroFile() {
@@ -224,13 +226,16 @@ export default function AdminDashboard({
     setPendingHeroPreviewUrl(null);
   }
 
-  function selectPendingProductFile(file: File | null) {
-    clearPendingProductFile();
-    if (!file) {
+  function selectPendingProductFiles(fileList: FileList | null) {
+    if (!fileList || fileList.length === 0) {
+      clearPendingProductFiles();
       return;
     }
-    setPendingProductFile(file);
-    setPendingProductPreviewUrl(URL.createObjectURL(file));
+    setPendingProductSelection(Array.from(fileList));
+  }
+
+  function removePendingProductFile(index: number) {
+    setPendingProductSelection(pendingProductFiles.filter((_, fileIndex) => fileIndex !== index));
   }
 
   function selectPendingHeroFile(file: File | null) {
@@ -243,23 +248,47 @@ export default function AdminDashboard({
   }
 
   async function uploadProductImage() {
-    if (!selectedProduct || !pendingProductFile) {
-      setStatus("Önce bir ürün ve görsel seçin.");
+    if (!selectedProduct || pendingProductFiles.length === 0) {
+      setStatus("Önce bir ürün ve en az bir görsel seçin.");
       setStatusTone("error");
       return;
     }
-    setStatus("Ürün görseli yükleniyor...");
+    const currentImageCount = selectedProduct.images.length;
+    if (currentImageCount + pendingProductFiles.length > 12) {
+      setStatus(`Bir üründe en fazla 12 görsel olabilir. Şu an ${currentImageCount} görsel var.`);
+      setStatusTone("error");
+      return;
+    }
+
+    setStatus(`${pendingProductFiles.length} görsel yükleniyor...`);
     setStatusTone("idle");
+    const uploadedUrls: string[] = [];
+    const failedFiles: File[] = [];
     try {
-      const { response, data } = await uploadFile(pendingProductFile);
-      if (!response.ok || !data?.url) {
-        setStatus(data?.message ?? "Görsel yüklenemedi.");
+      for (const file of pendingProductFiles) {
+        const { response, data } = await uploadFile(file);
+        if (!response.ok || !data?.url) {
+          failedFiles.push(file);
+          continue;
+        }
+        uploadedUrls.push(data.url);
+      }
+
+      if (uploadedUrls.length > 0) {
+        updateSelectedProductImages([...(selectedProduct.images ?? []), ...uploadedUrls]);
+      }
+
+      if (failedFiles.length > 0) {
+        setPendingProductSelection(failedFiles);
+        setStatus(
+          `${uploadedUrls.length} görsel eklendi, ${failedFiles.length} görsel yüklenemedi. Tekrar deneyin.`,
+        );
         setStatusTone("error");
         return;
       }
-      updateSelectedProductImages([...(selectedProduct.images ?? []), data.url]);
-      clearPendingProductFile();
-      setStatus("Ürün görseli eklendi. Kaydetmeyi unutmayın.");
+
+      clearPendingProductFiles();
+      setStatus(`${uploadedUrls.length} görsel eklendi. Kaydetmeyi unutmayın.`);
       setStatusTone("success");
     } catch (error) {
       if (error instanceof DOMException && error.name === "AbortError") {
@@ -594,26 +623,43 @@ export default function AdminDashboard({
                     <p className="font-medium text-sage-800 dark:text-cream-50">Ürün Görselleri</p>
                     <div className="flex flex-wrap gap-2">
                       <label className="inline-flex items-center gap-2 rounded-full border border-sage-200 dark:border-slate-700 px-4 py-2 text-sm cursor-pointer">
-                        <Upload className="w-4 h-4" /> Dosya Seç
+                        <Upload className="w-4 h-4" /> Görsel Seç
                         <input
                           type="file"
                           accept="image/*"
+                          multiple
                           className="hidden"
-                          onChange={(event) => selectPendingProductFile(event.target.files?.[0] ?? null)}
+                          onChange={(event) => selectPendingProductFiles(event.target.files)}
                         />
                       </label>
                       <button
                         type="button"
                         onClick={uploadProductImage}
-                        disabled={!pendingProductFile}
+                        disabled={pendingProductFiles.length === 0}
                         className="inline-flex items-center gap-2 rounded-full bg-sage-800 px-4 py-2 text-sm text-cream-50 hover:bg-sage-900 disabled:opacity-60"
                       >
-                        <Upload className="w-4 h-4" /> Görseli Ekle
+                        <Upload className="w-4 h-4" /> Seçilenleri Yükle ({pendingProductFiles.length})
                       </button>
                     </div>
-                    {pendingProductPreviewUrl ? (
-                      <div className="relative w-24 h-24 rounded-xl overflow-hidden border border-sage-200 dark:border-slate-700">
-                        <Image src={pendingProductPreviewUrl} alt="Yüklenecek görsel" fill sizes="96px" className="object-cover" unoptimized />
+                    <p className="text-xs text-sage-600 dark:text-sage-300">
+                      Bir ürüne en fazla 12 görsel ekleyebilirsiniz. Şu an: {selectedProduct.images.length}
+                    </p>
+                    {pendingProductPreviewUrls.length > 0 ? (
+                      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                        {pendingProductPreviewUrls.map((previewUrl, index) => (
+                          <div key={`pending-${previewUrl}-${index}`} className="relative rounded-xl overflow-hidden border border-sage-200 dark:border-slate-700">
+                            <div className="relative h-24">
+                              <Image src={previewUrl} alt={`Yüklenecek görsel ${index + 1}`} fill sizes="96px" className="object-cover" unoptimized />
+                            </div>
+                            <button
+                              type="button"
+                              onClick={() => removePendingProductFile(index)}
+                              className="w-full text-xs py-1.5 text-rose-600 bg-white/90 dark:bg-slate-900/90"
+                            >
+                              Listeden Kaldır
+                            </button>
+                          </div>
+                        ))}
                       </div>
                     ) : null}
                     <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
