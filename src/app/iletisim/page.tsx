@@ -1,5 +1,9 @@
-import { Mail, MapPin } from "lucide-react";
+import { Mail, MapPin, Truck } from "lucide-react";
 import { getSiteContent } from "@/lib/cms";
+
+function googleMapsEmbedFromQuery(query: string) {
+  return `https://maps.google.com/maps?q=${encodeURIComponent(query)}&hl=tr&z=13&output=embed`;
+}
 
 function InstagramLogo({ className }: { className?: string }) {
   return (
@@ -35,6 +39,7 @@ export default async function ContactPage() {
   const whatsappDisplay = "+90 501 350 22 09";
   const whatsappUrl = "https://wa.me/905013502209";
   const mapsUrl = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(content.contact.address)}`;
+  const mapEmbedSrc = googleMapsEmbedFromQuery(`${content.contact.address}, Türkiye`);
 
   return (
     <div className="w-full bg-[#050a24] transition-colors">
@@ -57,20 +62,32 @@ export default async function ContactPage() {
         <div className="bg-white/95 dark:bg-slate-900 rounded-3xl p-6 sm:p-8 md:p-14 shadow-xl border border-sage-100 dark:border-slate-800 flex flex-col justify-center h-full transition-colors">
           <ul className="space-y-8 text-sage-900 dark:text-cream-50">
             <li className="group">
-              <a
-                href={mapsUrl}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="flex items-center gap-6 rounded-2xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sage-500/70"
-              >
-                <div className="w-14 h-14 bg-sage-100 dark:bg-slate-800 text-sage-800 dark:text-cream-50 rounded-2xl flex items-center justify-center group-hover:bg-sage-700 dark:group-hover:bg-sage-500 group-hover:text-cream-50 transition-colors">
-                  <MapPin className="w-6 h-6" />
+              <div className="rounded-2xl border border-sage-100 dark:border-slate-700 bg-sage-50/30 dark:bg-slate-800/40 overflow-hidden focus-within:ring-2 focus-within:ring-sage-500/50">
+                <a
+                  href={mapsUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex items-start gap-4 sm:gap-6 p-5 sm:p-6 rounded-t-2xl hover:bg-white/80 dark:hover:bg-slate-900/70 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sage-500/70 focus-visible:ring-inset"
+                >
+                  <div className="shrink-0 w-14 h-14 bg-sage-100 dark:bg-slate-800 text-sage-800 dark:text-cream-50 rounded-2xl flex items-center justify-center group-hover:bg-sage-700 dark:group-hover:bg-sage-500 group-hover:text-cream-50 transition-colors">
+                    <MapPin className="w-6 h-6" />
+                  </div>
+                  <div className="min-w-0 flex-1 text-left">
+                    <p className="font-semibold text-lg mb-1 text-slate-800 dark:text-cream-50">{content.contact.addressLabel}</p>
+                    <p className="text-slate-700 dark:text-sage-300 font-medium leading-relaxed">{content.contact.address}</p>
+                    <p className="mt-3 text-sm font-medium text-rose-600 dark:text-rose-400">Haritada aç →</p>
+                  </div>
+                </a>
+                <div className="border-t border-sage-100/90 dark:border-slate-700 px-5 sm:px-6 pb-5 sm:pb-6 pt-4">
+                  <div className="flex gap-3 rounded-xl bg-white/90 dark:bg-slate-900/90 border border-sage-200/80 dark:border-slate-600 px-4 py-3 shadow-sm">
+                    <Truck className="w-5 h-5 text-sage-600 dark:text-sage-300 shrink-0 mt-0.5" aria-hidden />
+                    <p className="text-sm text-slate-700 dark:text-sage-200 leading-snug">
+                      <span className="font-semibold text-slate-800 dark:text-cream-50">Teslimat: </span>
+                      Bursa içi elden teslim, diğer illere kargo mevcuttur.
+                    </p>
+                  </div>
                 </div>
-                <div>
-                  <p className="font-semibold text-lg mb-1 text-slate-800 dark:text-cream-50">{content.contact.addressLabel}</p>
-                  <p className="text-slate-700 dark:text-sage-300 font-medium">{content.contact.address}</p>
-                </div>
-              </a>
+              </div>
             </li>
             
             <li className="group">
@@ -129,17 +146,18 @@ export default async function ContactPage() {
         </div>
 
         {/* Map */}
-        <div className="h-full min-h-[300px] md:min-h-[400px] w-full rounded-3xl overflow-hidden shadow-xl border border-sage-100 dark:border-slate-800">
+        <div className="h-full min-h-[300px] md:min-h-[400px] w-full rounded-3xl overflow-hidden shadow-xl border border-sage-100 dark:border-slate-800 bg-slate-100 dark:bg-slate-800">
           <iframe
-            src={content.contact.mapEmbed}
+            title={`${content.contact.addressLabel} haritası`}
+            src={mapEmbedSrc}
             width="100%"
             height="100%"
-            style={{ border: 0 }}
+            style={{ border: 0, minHeight: "min(70vh, 420px)" }}
             allowFullScreen
             loading="lazy"
             referrerPolicy="no-referrer-when-downgrade"
-            className="w-full h-full object-cover"
-          ></iframe>
+            className="w-full h-full min-h-[300px] md:min-h-[400px]"
+          />
         </div>
       </div>
 
