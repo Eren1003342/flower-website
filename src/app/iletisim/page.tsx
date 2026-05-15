@@ -48,9 +48,6 @@ export default async function ContactPage() {
           <div className="paper-surface px-6 md:px-10 py-10 md:py-12 text-center">
             <h1 className="text-5xl font-bold text-cream-50 mb-4" style={{ fontFamily: "var(--font-brand)" }}>{content.contact.title}</h1>
             <p className="text-cream-50/90 max-w-2xl mx-auto text-lg font-medium">{content.contact.subtitle}</p>
-            <p className="mt-4 inline-flex items-center justify-center rounded-full border border-amber-200/40 bg-amber-100/15 px-4 py-2 text-sm font-semibold text-amber-100">
-              Bursa içi elden teslim, diğer illere kargo mevcuttur.
-            </p>
           </div>
         </div>
       </section>
@@ -60,36 +57,24 @@ export default async function ContactPage() {
       <div className="grid md:grid-cols-2 gap-8 md:gap-12 lg:gap-24 mb-14 md:mb-24 items-start">
         {/* Contact Info */}
         <div className="bg-white/95 dark:bg-slate-900 rounded-3xl p-6 sm:p-8 md:p-14 shadow-xl border border-sage-100 dark:border-slate-800 flex flex-col justify-center h-full transition-colors">
-          <ul className="space-y-8 text-sage-900 dark:text-cream-50">
+          <ul className="space-y-8 text-sage-900 dark:text-cream-50 max-w-xl mx-auto w-full">
             <li className="group">
-              <div className="rounded-2xl border border-sage-100 dark:border-slate-700 bg-sage-50/30 dark:bg-slate-800/40 overflow-hidden focus-within:ring-2 focus-within:ring-sage-500/50">
-                <a
-                  href={mapsUrl}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="flex items-start gap-4 sm:gap-6 p-5 sm:p-6 rounded-t-2xl hover:bg-white/80 dark:hover:bg-slate-900/70 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sage-500/70 focus-visible:ring-inset"
-                >
-                  <div className="shrink-0 w-14 h-14 bg-sage-100 dark:bg-slate-800 text-sage-800 dark:text-cream-50 rounded-2xl flex items-center justify-center group-hover:bg-sage-700 dark:group-hover:bg-sage-500 group-hover:text-cream-50 transition-colors">
-                    <MapPin className="w-6 h-6" />
-                  </div>
-                  <div className="min-w-0 flex-1 text-left">
-                    <p className="font-semibold text-lg mb-1 text-slate-800 dark:text-cream-50">{content.contact.addressLabel}</p>
-                    <p className="text-slate-700 dark:text-sage-300 font-medium leading-relaxed">{content.contact.address}</p>
-                    <p className="mt-3 text-sm font-medium text-rose-600 dark:text-rose-400">Haritada aç →</p>
-                  </div>
-                </a>
-                <div className="border-t border-sage-100/90 dark:border-slate-700 px-5 sm:px-6 pb-5 sm:pb-6 pt-4">
-                  <div className="flex gap-3 rounded-xl bg-white/90 dark:bg-slate-900/90 border border-sage-200/80 dark:border-slate-600 px-4 py-3 shadow-sm">
-                    <Truck className="w-5 h-5 text-sage-600 dark:text-sage-300 shrink-0 mt-0.5" aria-hidden />
-                    <p className="text-sm text-slate-700 dark:text-sage-200 leading-snug">
-                      <span className="font-semibold text-slate-800 dark:text-cream-50">Teslimat: </span>
-                      Bursa içi elden teslim, diğer illere kargo mevcuttur.
-                    </p>
-                  </div>
+              <a
+                href={mapsUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex items-center gap-6 rounded-2xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sage-500/70"
+              >
+                <div className="w-14 h-14 bg-sage-100 dark:bg-slate-800 text-sage-800 dark:text-cream-50 rounded-2xl flex items-center justify-center group-hover:bg-sage-700 dark:group-hover:bg-sage-500 group-hover:text-cream-50 transition-colors shrink-0">
+                  <MapPin className="w-6 h-6" />
                 </div>
-              </div>
+                <div className="min-w-0 text-left">
+                  <p className="font-semibold text-lg mb-1 text-slate-800 dark:text-cream-50">{content.contact.addressLabel}</p>
+                  <p className="text-slate-700 dark:text-sage-300 font-medium">{content.contact.address}</p>
+                </div>
+              </a>
             </li>
-            
+
             <li className="group">
               <a
                 href={instagramUrl}
@@ -107,6 +92,18 @@ export default async function ContactPage() {
                   </p>
                 </div>
               </a>
+            </li>
+
+            <li className="group">
+              <div className="flex items-center gap-6 rounded-2xl">
+                <div className="w-14 h-14 bg-sage-100 dark:bg-slate-800 text-sage-700 dark:text-sage-200 rounded-2xl flex items-center justify-center shrink-0">
+                  <Truck className="w-6 h-6" aria-hidden />
+                </div>
+                <div>
+                  <p className="font-semibold text-lg mb-1 text-slate-800 dark:text-cream-50">Teslimat</p>
+                  <p className="text-slate-700 dark:text-sage-300 font-medium">Elden teslim ve kargo</p>
+                </div>
+              </div>
             </li>
 
             <li className="group">
@@ -204,10 +201,6 @@ export default async function ContactPage() {
         <div className="rounded-2xl bg-slate-900/90 border border-slate-700 p-4 text-slate-200">
           <p className="text-xs uppercase tracking-[0.15em] text-slate-400">Satış Kanalı</p>
           <p className="font-semibold mt-1">Instagram ve WhatsApp üzerinden sipariş</p>
-        </div>
-        <div className="rounded-2xl bg-slate-900/90 border border-slate-700 p-4 text-slate-200 md:col-span-3">
-          <p className="text-xs uppercase tracking-[0.15em] text-slate-400">Teslimat Bölgesi</p>
-          <p className="font-semibold mt-1">Bursa içi elden teslim, diğer illere kargo gönderimi sağlıyoruz.</p>
         </div>
       </div>
     </div>
